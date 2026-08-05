@@ -10,7 +10,7 @@ export function TripCard({ trip }: { trip: Trip }) {
       className="block rounded-xl border border-slate-200 bg-white p-4 transition hover:border-indigo-300 hover:shadow-sm"
     >
       <div className="flex items-center justify-between gap-2">
-        <span className="text-sm font-semibold text-slate-900">
+        <span className="min-w-0 break-words text-sm font-semibold text-slate-900">
           {directionCities(trip.direction, trip.from_city, trip.to_city)}
         </span>
         <span className="shrink-0 text-xs">{DIRECTIONS[trip.direction].short}</span>
@@ -20,7 +20,9 @@ export function TripCard({ trip }: { trip: Trip }) {
         <span>{formatKg(trip.available_kg)} сул</span>
         <span className="font-semibold text-indigo-600">{formatPrice(trip.price_per_kg)}/кг</span>
       </div>
-      {trip.notes ? <p className="mt-2 line-clamp-2 text-sm text-slate-500">{trip.notes}</p> : null}
+      {trip.notes ? (
+        <p className="mt-2 line-clamp-2 break-words text-sm text-slate-500">{trip.notes}</p>
+      ) : null}
       <p className="mt-2 text-xs text-slate-400">{trip.user_name}</p>
     </Link>
   );

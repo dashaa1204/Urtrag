@@ -54,12 +54,14 @@ export async function signup(_prev: FormState | undefined, formData: FormData): 
   const email = str(formData, "email").toLowerCase();
   const phone = str(formData, "phone");
   const password = rawStr(formData, "password");
-  const values = { name, email, phone };
+  const terms = formData.get("terms") === "on";
+  const values = { name, email, phone, terms: terms ? "on" : "" };
 
   const fieldErrors: Record<string, string> = {};
   if (name.length < 2) fieldErrors.name = "Нэрээ бүтэн оруулна уу.";
   if (!EMAIL_RE.test(email)) fieldErrors.email = "Имэйл хаяг буруу байна.";
   if (password.length < 8) fieldErrors.password = "Нууц үг дор хаяж 8 тэмдэгт байх ёстой.";
+  if (!terms) fieldErrors.terms = "Хариуцлагын тайлбарыг зөвшөөрнө үү.";
   if (Object.keys(fieldErrors).length > 0) return { fieldErrors, values };
 
   let userId: number;

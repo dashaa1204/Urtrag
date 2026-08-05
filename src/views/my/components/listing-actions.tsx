@@ -5,7 +5,7 @@ import { closeListing, deleteListing, reopenListing } from "@/lib/actions";
 import type { ListingStatus, ListingType } from "@/types";
 
 const actionBtnCls =
-  "cursor-pointer rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50";
+  "inline-flex min-h-9 cursor-pointer items-center rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50 sm:min-h-0";
 
 export function ListingActions({
   type,
@@ -54,7 +54,7 @@ export function ListingActions({
         <input type="hidden" name="id" value={id} />
         <button
           type="submit"
-          className="cursor-pointer rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50"
+          className="inline-flex min-h-9 cursor-pointer items-center rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50 sm:min-h-0"
         >
           Устгах
         </button>

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import { signup } from "@/lib/actions";
 import { btnPrimary, FieldError, inputCls, labelCls } from "@/components/ui";
@@ -48,6 +49,26 @@ export function SignupForm({ next }: { next?: string }) {
         </label>
         <input id="password" name="password" type="password" placeholder="Дор хаяж 8 тэмдэгт" className={inputCls} required />
         <FieldError message={state?.fieldErrors?.password} />
+      </div>
+
+      <div>
+        <label htmlFor="terms" className="flex cursor-pointer items-start gap-2 text-sm text-slate-600">
+          <input
+            id="terms"
+            name="terms"
+            type="checkbox"
+            defaultChecked={state?.values?.terms === "on"}
+            className="mt-0.5 size-4 shrink-0 cursor-pointer rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+          />
+          <span>
+            Би{" "}
+            <Link href="/disclaimer" target="_blank" className="font-semibold text-indigo-600 hover:underline">
+              хариуцлагын тайлбарыг
+            </Link>{" "}
+            уншиж танилцан, хүлээн зөвшөөрч байна.
+          </span>
+        </label>
+        <FieldError message={state?.fieldErrors?.terms} />
       </div>
 
       <button type="submit" disabled={pending} className={btnPrimary}>

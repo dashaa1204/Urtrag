@@ -27,7 +27,7 @@ export default function HomeView({ trips, shipments }: { trips: Trip[]; shipment
             Одоогоор идэвхтэй аялал алга. Эхнийх нь та байгаарай! ✈️
           </p>
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {trips.map((trip) => (
               <TripCard key={trip.id} trip={trip} />
             ))}
@@ -42,7 +42,7 @@ export default function HomeView({ trips, shipments }: { trips: Trip[]; shipment
             Одоогоор ачааны хүсэлт алга. Эхнийх нь та байгаарай! 📦
           </p>
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {shipments.map((shipment) => (
               <ShipmentCard key={shipment.id} shipment={shipment} />
             ))}

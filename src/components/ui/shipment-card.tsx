@@ -10,7 +10,7 @@ export function ShipmentCard({ shipment }: { shipment: Shipment }) {
       className="block rounded-xl border border-slate-200 bg-white p-4 transition hover:border-indigo-300 hover:shadow-sm"
     >
       <div className="flex items-center justify-between gap-2">
-        <span className="text-sm font-semibold text-slate-900">
+        <span className="min-w-0 break-words text-sm font-semibold text-slate-900">
           {directionCities(shipment.direction, shipment.from_city, shipment.to_city)}
         </span>
         <span className="shrink-0 text-xs">{DIRECTIONS[shipment.direction].short}</span>
@@ -22,7 +22,7 @@ export function ShipmentCard({ shipment }: { shipment: Shipment }) {
           <span className="font-semibold text-indigo-600">{formatPrice(shipment.offer_price)}/кг санал</span>
         ) : null}
       </div>
-      <p className="mt-2 line-clamp-2 text-sm text-slate-500">{shipment.description}</p>
+      <p className="mt-2 line-clamp-2 break-words text-sm text-slate-500">{shipment.description}</p>
       <p className="mt-2 text-xs text-slate-400">{shipment.user_name}</p>
     </Link>
   );

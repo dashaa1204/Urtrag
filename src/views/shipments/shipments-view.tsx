@@ -10,7 +10,7 @@ export default function ShipmentsView({ shipments, direction }: { shipments: Shi
           <h1 className="text-2xl font-bold text-slate-900">Ачаанууд</h1>
           <p className="mt-1 text-sm text-slate-500">Илгээхээр хүлээгдэж буй ачааны хүсэлтүүд</p>
         </div>
-        <Link href="/shipments/new" className={btnPrimary}>
+        <Link href="/shipments/new" className={`${btnPrimary} w-full sm:w-auto`}>
           + Ачаа илгээх хүсэлт
         </Link>
       </div>
@@ -25,7 +25,7 @@ export default function ShipmentsView({ shipments, direction }: { shipments: Shi
           <p className="mt-1 text-sm text-slate-400">Та ачаа илгээх гэж байгаа бол эхний хүсэлтээ оруулаарай!</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {shipments.map((shipment) => (
             <ShipmentCard key={shipment.id} shipment={shipment} />
           ))}

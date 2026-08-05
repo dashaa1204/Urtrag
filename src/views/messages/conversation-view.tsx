@@ -35,7 +35,7 @@ export default function ConversationView({
         </div>
         <Link
           href={listingHref}
-          className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+          className="max-w-full truncate rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
         >
           {listingTitle} →
         </Link>
@@ -48,11 +48,11 @@ export default function ConversationView({
             return (
               <div key={message.id} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
                 <div
-                  className={`max-w-[80%] rounded-2xl px-4 py-2 ${
+                  className={`max-w-[85%] rounded-2xl px-4 py-2 sm:max-w-[80%] ${
                     isMine ? "rounded-br-md bg-indigo-600 text-white" : "rounded-bl-md bg-slate-100 text-slate-900"
                   }`}
                 >
-                  <p className="whitespace-pre-wrap text-sm">{message.body}</p>
+                  <p className="whitespace-pre-wrap break-words text-sm">{message.body}</p>
                   <p className={`mt-1 text-right text-[10px] ${isMine ? "text-indigo-200" : "text-slate-400"}`}>
                     <LocalTime iso={message.created_at} />
                   </p>
@@ -68,7 +68,7 @@ export default function ConversationView({
       </div>
 
       {canReview ? (
-        <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
           <h2 className="mb-3 font-semibold text-slate-900">Үнэлгээ</h2>
           <ReviewBox conversationId={conversation.id} otherName={otherName} existing={ownReview} />
         </div>

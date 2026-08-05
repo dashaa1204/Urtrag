@@ -10,7 +10,7 @@ export default function TripsView({ trips, direction }: { trips: Trip[]; directi
           <h1 className="text-2xl font-bold text-slate-900">Аялалууд</h1>
           <p className="mt-1 text-sm text-slate-500">Ачаа авч явах боломжтой аялагчид</p>
         </div>
-        <Link href="/trips/new" className={btnPrimary}>
+        <Link href="/trips/new" className={`${btnPrimary} w-full sm:w-auto`}>
           + Аялал зарлах
         </Link>
       </div>
@@ -25,7 +25,7 @@ export default function TripsView({ trips, direction }: { trips: Trip[]; directi
           <p className="mt-1 text-sm text-slate-400">Та аялахаар төлөвлөж байгаа бол эхний зараа оруулаарай!</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {trips.map((trip) => (
             <TripCard key={trip.id} trip={trip} />
           ))}

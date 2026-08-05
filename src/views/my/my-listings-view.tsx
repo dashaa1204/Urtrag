@@ -37,9 +37,9 @@ export default function MyListingsView({ trips, shipments }: { trips: Trip[]; sh
               return (
                 <div
                   key={trip.id}
-                  className="flex flex-wrap items-center gap-3 border-b border-slate-100 px-4 py-3 last:border-b-0"
+                  className="flex flex-col gap-2 border-b border-slate-100 px-4 py-3 last:border-b-0 sm:flex-row sm:items-center sm:gap-3"
                 >
-                  <Link href={`/trips/${trip.id}`} className="min-w-0 flex-1 hover:underline">
+                  <Link href={`/trips/${trip.id}`} className="min-w-0 sm:flex-1 hover:underline">
                     <p className="truncate text-sm font-medium text-slate-900">
                       {directionCities(trip.direction, trip.from_city, trip.to_city)}
                     </p>
@@ -47,8 +47,10 @@ export default function MyListingsView({ trips, shipments }: { trips: Trip[]; sh
                       {formatDate(trip.travel_date)} · {formatKg(trip.available_kg)} · {formatPrice(trip.price_per_kg)}/кг
                     </p>
                   </Link>
-                  {expired && trip.status === "active" ? <ExpiredBadge /> : <StatusBadge status={trip.status} />}
-                  <ListingActions type="trip" id={trip.id} status={trip.status} canReopen={!expired} />
+                  <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
+                    {expired && trip.status === "active" ? <ExpiredBadge /> : <StatusBadge status={trip.status} />}
+                    <ListingActions type="trip" id={trip.id} status={trip.status} canReopen={!expired} />
+                  </div>
                 </div>
               );
             })}
@@ -72,9 +74,9 @@ export default function MyListingsView({ trips, shipments }: { trips: Trip[]; sh
             {shipments.map((shipment) => (
               <div
                 key={shipment.id}
-                className="flex flex-wrap items-center gap-3 border-b border-slate-100 px-4 py-3 last:border-b-0"
+                className="flex flex-col gap-2 border-b border-slate-100 px-4 py-3 last:border-b-0 sm:flex-row sm:items-center sm:gap-3"
               >
-                <Link href={`/shipments/${shipment.id}`} className="min-w-0 flex-1 hover:underline">
+                <Link href={`/shipments/${shipment.id}`} className="min-w-0 sm:flex-1 hover:underline">
                   <p className="truncate text-sm font-medium text-slate-900">
                     {directionCities(shipment.direction, shipment.from_city, shipment.to_city)}
                   </p>
@@ -82,8 +84,10 @@ export default function MyListingsView({ trips, shipments }: { trips: Trip[]; sh
                     {formatKg(shipment.weight_kg)} · {shipment.description}
                   </p>
                 </Link>
-                <StatusBadge status={shipment.status} />
-                <ListingActions type="shipment" id={shipment.id} status={shipment.status} canReopen />
+                <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
+                  <StatusBadge status={shipment.status} />
+                  <ListingActions type="shipment" id={shipment.id} status={shipment.status} canReopen />
+                </div>
               </div>
             ))}
           </div>

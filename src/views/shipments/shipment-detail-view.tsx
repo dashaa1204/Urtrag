@@ -18,7 +18,7 @@ export default function ShipmentDetailView({
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-8">
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <span className="text-sm text-slate-500">
             {DIRECTIONS[shipment.direction].short} · Ачааны хүсэлт
@@ -26,16 +26,16 @@ export default function ShipmentDetailView({
           <StatusBadge status={shipment.status} />
         </div>
 
-        <h1 className="mt-2 text-2xl font-bold text-slate-900">
+        <h1 className="mt-2 break-words text-xl font-bold text-slate-900 sm:text-2xl">
           {directionCities(shipment.direction, shipment.from_city, shipment.to_city)}
         </h1>
 
-        <dl className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <div className="rounded-xl bg-slate-50 p-4">
+        <dl className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
+          <div className="rounded-xl bg-slate-50 p-3 sm:p-4">
             <dt className="text-xs text-slate-500">Жин</dt>
             <dd className="mt-1 font-semibold text-slate-900">{formatKg(shipment.weight_kg)}</dd>
           </div>
-          <div className="rounded-xl bg-slate-50 p-4">
+          <div className="rounded-xl bg-slate-50 p-3 sm:p-4">
             <dt className="text-xs text-slate-500">Хугацаа</dt>
             <dd className="mt-1 text-sm font-semibold text-slate-900">
               {shipment.ready_date || shipment.deadline_date
@@ -43,7 +43,7 @@ export default function ShipmentDetailView({
                 : "Тохиролцоно"}
             </dd>
           </div>
-          <div className="rounded-xl bg-slate-50 p-4">
+          <div className="rounded-xl bg-slate-50 p-3 sm:p-4">
             <dt className="text-xs text-slate-500">Санал болгох үнэ</dt>
             <dd className="mt-1 font-semibold text-indigo-600">
               {shipment.offer_price ? `${formatPrice(shipment.offer_price)}/кг` : "Тохиролцоно"}
@@ -51,7 +51,7 @@ export default function ShipmentDetailView({
           </div>
         </dl>
 
-        <p className="mt-6 whitespace-pre-wrap text-sm text-slate-600">{shipment.description}</p>
+        <p className="mt-6 whitespace-pre-wrap break-words text-sm text-slate-600">{shipment.description}</p>
 
         <p className="mt-6 flex flex-wrap items-center gap-2 text-sm text-slate-500">
           Зарын эзэн:{" "}
@@ -63,7 +63,7 @@ export default function ShipmentDetailView({
         </p>
       </div>
 
-      <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
         {isOwner ? (
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-slate-600">Энэ бол таны хүсэлт. Ачаагаа илгээчихсэн бол зараа хаагаарай.</p>

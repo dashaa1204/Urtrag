@@ -13,13 +13,13 @@ interface UserProfileViewProps {
 export default function UserProfileView({ profile, rating, reviews, trips, shipments }: UserProfileViewProps) {
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-8">
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
         <div className="flex items-center gap-4">
           <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-xl font-bold text-indigo-600">
             {profile.name.charAt(0).toUpperCase()}
           </div>
-          <div>
-            <h1 className="text-xl font-bold text-slate-900">{profile.name}</h1>
+          <div className="min-w-0">
+            <h1 className="break-words text-xl font-bold text-slate-900">{profile.name}</h1>
             <p className="mt-0.5 flex flex-wrap items-center gap-2 text-sm text-slate-500">
               <RatingSummary rating={rating} />
               <span>· Гишүүн болсон: {formatDate(profile.created_at)}</span>
@@ -42,7 +42,9 @@ export default function UserProfileView({ profile, rating, reviews, trips, shipm
                     <LocalTime iso={review.created_at} dateOnly />
                   </span>
                 </div>
-                {review.comment ? <p className="mt-1 text-sm text-slate-600">{review.comment}</p> : null}
+                {review.comment ? (
+                  <p className="mt-1 break-words text-sm text-slate-600">{review.comment}</p>
+                ) : null}
               </div>
             ))}
           </div>

@@ -38,7 +38,7 @@ export function ReviewBox({
             type="button"
             onClick={() => setRating(n)}
             aria-label={`${n} од`}
-            className={`cursor-pointer text-2xl transition ${n <= rating ? "text-amber-500" : "text-slate-300 hover:text-amber-300"}`}
+            className={`flex h-11 w-11 cursor-pointer items-center justify-center text-2xl transition sm:h-8 sm:w-8 ${n <= rating ? "text-amber-500" : "text-slate-300 hover:text-amber-300"}`}
           >
             ★
           </button>
