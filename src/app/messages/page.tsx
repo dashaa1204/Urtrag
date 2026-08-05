@@ -1,0 +1,11 @@
+import type { Metadata } from "next";
+import { requireUser } from "@/lib/auth";
+import { listConversations } from "@/lib/data";
+import InboxView from "@/views/messages/inbox-view";
+
+export const metadata: Metadata = { title: "Мессеж" };
+
+export default async function MessagesPage() {
+  const user = await requireUser("/messages");
+  return <InboxView conversations={listConversations(user.id)} />;
+}
