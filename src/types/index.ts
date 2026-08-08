@@ -2,8 +2,11 @@ export type Direction = "at-mn" | "mn-at";
 export type ListingType = "trip" | "shipment";
 export type ListingStatus = "active" | "closed";
 
+/** Хэрэглэгчийн id нь Supabase Auth-ийн uuid. */
+export type UserId = string;
+
 export interface SessionUser {
-  id: number;
+  id: UserId;
   email: string;
   name: string;
   phone: string | null;
@@ -11,7 +14,7 @@ export interface SessionUser {
 
 export interface Trip {
   id: number;
-  user_id: number;
+  user_id: UserId;
   direction: Direction;
   from_city: string | null;
   to_city: string | null;
@@ -20,13 +23,13 @@ export interface Trip {
   price_per_kg: number;
   notes: string | null;
   status: ListingStatus;
-  created_at: string;
+  created_at: Date;
   user_name: string;
 }
 
 export interface Shipment {
   id: number;
-  user_id: number;
+  user_id: UserId;
   direction: Direction;
   from_city: string | null;
   to_city: string | null;
@@ -36,7 +39,7 @@ export interface Shipment {
   description: string;
   offer_price: number | null;
   status: ListingStatus;
-  created_at: string;
+  created_at: Date;
   user_name: string;
 }
 
@@ -44,37 +47,37 @@ export interface Conversation {
   id: number;
   listing_type: ListingType;
   listing_id: number;
-  starter_id: number;
-  owner_id: number;
-  created_at: string;
+  starter_id: UserId;
+  owner_id: UserId;
+  created_at: Date;
 }
 
 export interface ConversationPreview extends Conversation {
   other_name: string;
   listing_title: string;
   last_body: string | null;
-  last_at: string | null;
+  last_at: Date | null;
   unread: number;
 }
 
 export interface Message {
   id: number;
   conversation_id: number;
-  sender_id: number;
+  sender_id: UserId;
   body: string;
-  created_at: string;
-  read_at: string | null;
+  created_at: Date;
+  read_at: Date | null;
   sender_name: string;
 }
 
 export interface Review {
   id: number;
   conversation_id: number;
-  reviewer_id: number;
-  reviewee_id: number;
+  reviewer_id: UserId;
+  reviewee_id: UserId;
   rating: number;
   comment: string | null;
-  created_at: string;
+  created_at: Date;
   reviewer_name: string;
 }
 
@@ -84,9 +87,9 @@ export interface UserRating {
 }
 
 export interface UserProfile {
-  id: number;
+  id: UserId;
   name: string;
-  created_at: string;
+  created_at: Date;
 }
 
 /** Server action-уудын useActionState-д зориулсан нийтлэг төлөв */
@@ -96,4 +99,6 @@ export interface FormState {
   /** Алдаа гарахад формын утгыг хадгалж буцаана (React form reset хийдэг тул) */
   values?: Record<string, string>;
   success?: boolean;
+  /** Бүртгэлийн дараа имэйл баталгаажуулах шаардлагатайг мэдэгдэнэ */
+  notice?: string;
 }

@@ -1,36 +1,104 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Замдаа
 
-## Getting Started
+Австри ↔ Монголын хооронд зорчих аялагчид болон ачаа илгээгчдийг холбох платформ.
 
-First, run the development server:
+**Стек:** Next.js 16 (App Router) · Tailwind 4 · Supabase (Postgres + Auth) · Drizzle ORM
+
+---
+
+## Эхлүүлэх
+
+### 1. Supabase төсөл үүсгэх
+
+[supabase.com/dashboard](https://supabase.com/dashboard) дээр шинэ төсөл үүсгэнэ.
+Бүс нутгаар `eu-central` (Frankfurt) сонговол Австриас хамгийн ойр.
+
+### 2. Орчны хувьсагч
+
+```bash
+cp .env.example .env.local
+```
+
+`.env.local`-г Supabase Dashboard-оос авсан утгуудаар дүүргэнэ:
+
+| Хувьсагч | Хаанаас авах |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Project Settings → API |
+| `SUPABASE_SERVICE_ROLE_KEY` | Project Settings → API (нууц!) |
+| `DATABASE_URL` | Settings → Database → Connection string → Transaction pooler (6543) |
+| `DIRECT_URL` | Мөн тэндээс, харин порт 5432 |
+
+### 3. Хүснэгтүүдийг үүсгэх
+
+```bash
+npm run db:migrate
+```
+
+Энэ нь `drizzle/` доторх migration-уудыг ажиллуулж, хүснэгт, RLS болон
+`auth.users` → `profiles` trigger-ийг үүсгэнэ.
+
+### 4. Имэйл баталгаажуулалт ба нууц үг сэргээх
+
+Supabase Dashboard → Authentication → URL Configuration:
+
+- **Site URL**: `http://localhost:3000` (production дээр жинхэнэ домэйн)
+- **Redirect URLs**: `http://localhost:3000/auth/callback` нэмэх
+
+Энэ нэг зам нь бүртгэл баталгаажуулах болон нууц үг сэргээх хоёуланд үйлчилнэ
+(`/auth/callback` нь `?next=` параметрээр дараагийн хуудсыг шийднэ).
+
+> Supabase-ийн үнэгүй SMTP нь цагт хэдхэн имэйл л илгээдэг бөгөөд зөвхөн
+> баг гишүүдийн хаяг руу явдаг. Жинхэнэ хэрэглэгчидтэй ажиллахын өмнө
+> Authentication → Emails хэсэгт өөрийн SMTP (Resend, Postmark г.м.) холбоно уу.
+
+### 5. Тест дата (заавал биш)
+
+```bash
+npm run db:seed
+```
+
+`bataa@test.mn` болон `saraa@test.mn` (нууц үг `test12345`) хэрэглэгчид
+жишээ зар/ачаатайгаар үүснэ.
+
+### 6. Ажиллуулах
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Бүтэц
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+src/
+  app/          # зөвхөн routing — нимгэн page-үүд
+  views/        # хуудас тус бүрийн үндсэн UI (+ components/)
+  components/   # хуваалцсан layout / ui
+  lib/
+    db/         # Drizzle schema + Postgres холболт
+    supabase/   # Supabase клиентүүд (server / admin)
+    auth.ts     # getCurrentUser / requireUser
+    data.ts     # бүх DB query
+    actions.ts  # server action-ууд
+  proxy.ts      # Supabase session сэргээх (Next 16-д middleware.ts-ийг орлоно)
+drizzle/        # SQL migration-ууд
+scripts/seed.ts # хөгжүүлэлтийн тест дата
+```
 
-## Learn More
+## DB командууд
 
-To learn more about Next.js, take a look at the following resources:
+| Команд | Үйлдэл |
+|---|---|
+| `npm run db:generate` | Schema-гийн өөрчлөлтөөс шинэ migration үүсгэнэ |
+| `npm run db:migrate` | Хүлээгдэж буй migration-уудыг ажиллуулна |
+| `npm run db:studio` | Drizzle Studio — өгөгдлийг браузераас харах |
+| `npm run db:seed` | Тест дата |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Аюулгүй байдлын тэмдэглэл
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Бүх хүснэгт дээр RLS асаалттай бөгөөд policy үүсгээгүй. Өөрөөр хэлбэл Supabase-ийн
+нээлттэй REST API-аар (anon түлхүүр) эдгээр хүснэгтэд хандах боломжгүй. Апп нь
+`DATABASE_URL`-ээр шууд холбогдож, хандах эрхийн шалгалтыг server action болон
+`requireUser` дээр хийдэг. Хэрэв ирээдүйд клиент талаас `supabase-js`-ээр шууд
+хандах бол хүснэгт бүрт policy бичих шаардлагатай.

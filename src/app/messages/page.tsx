@@ -7,5 +7,5 @@ export const metadata: Metadata = { title: "Мессеж" };
 
 export default async function MessagesPage() {
   const user = await requireUser("/messages");
-  return <InboxView conversations={listConversations(user.id)} />;
+  return <InboxView conversations={await listConversations(user.id)} />;
 }

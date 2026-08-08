@@ -1,12 +1,12 @@
 import Link from "next/link";
-import type { Conversation, Message, Review } from "@/types";
+import type { Conversation, Message, Review, UserId } from "@/types";
 import { LocalTime, MessageForm } from "@/components/ui";
 import { ReviewBox } from "./components";
 
 interface ConversationViewProps {
   conversation: Conversation;
   messages: Message[];
-  currentUserId: number;
+  currentUserId: UserId;
   otherName: string;
   listingTitle: string;
   listingHref: string;

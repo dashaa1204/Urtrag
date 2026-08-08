@@ -7,10 +7,11 @@ export function directionCities(direction: Direction, fromCity?: string | null, 
   return `${fromCity || defaults[0]} → ${toCity || defaults[1]}`;
 }
 
-/** "2026-08-15" → "2026.08.15" */
-export function formatDate(isoDate: string | null | undefined): string {
-  if (!isoDate) return "";
-  const [y, m, d] = isoDate.slice(0, 10).split("-");
+/** "2026-08-15" эсвэл Date → "2026.08.15" */
+export function formatDate(value: string | Date | null | undefined): string {
+  if (!value) return "";
+  const iso = typeof value === "string" ? value : value.toISOString();
+  const [y, m, d] = iso.slice(0, 10).split("-");
   return `${y}.${m}.${d}`;
 }
 

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { SessionUser } from "@/types";
 import { logout } from "@/lib/actions";
+import { Avatar } from "@/components/ui";
 
 const itemCls =
   "flex min-h-11 items-center rounded-lg px-3 text-base font-medium text-slate-700 transition hover:bg-slate-100 hover:text-slate-900";
@@ -21,7 +22,7 @@ export function MobileNav({ user, unread }: { user: SessionUser | null; unread: 
   }
 
   return (
-    <div className="md:hidden">
+    <div className="ml-auto md:hidden">
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
@@ -56,6 +57,14 @@ export function MobileNav({ user, unread }: { user: SessionUser | null; unread: 
 
             {user ? (
               <>
+                <div className="my-1 border-t border-slate-100" />
+                <Link href={`/users/${user.id}`} className={`${itemCls} gap-3`}>
+                  <Avatar name={user.name} />
+                  <span className="min-w-0">
+                    <span className="block truncate">{user.name}</span>
+                    <span className="block truncate text-xs font-normal text-slate-500">Миний профайл</span>
+                  </span>
+                </Link>
                 <Link href="/messages" className={itemCls}>
                   Мессеж
                   {unread > 0 ? (
@@ -68,7 +77,10 @@ export function MobileNav({ user, unread }: { user: SessionUser | null; unread: 
                   Миний зар
                 </Link>
                 <form action={logout} className="contents">
-                  <button type="submit" className={`${itemCls} cursor-pointer w-full text-left`}>
+                  <button
+                    type="submit"
+                    className={`${itemCls} w-full cursor-pointer text-left text-red-600 hover:bg-red-50 hover:text-red-700`}
+                  >
                     Гарах
                   </button>
                 </form>

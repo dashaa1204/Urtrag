@@ -2,15 +2,8 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { db } from "./db";
-import {
-  createSession,
-  destroySession,
-  getCurrentUser,
-  hashPassword,
-  requireUser,
-  verifyPassword,
-} from "./auth";
+import { getCurrentUser, requireUser } from "./auth";
+import { createClient } from "./supabase/server";
 import {
   addMessage,
   closeListing as closeListingRow,
@@ -47,6 +40,25 @@ function safeNext(formData: FormData, fallback: string): string {
   return next.startsWith("/") && !next.startsWith("//") ? next : fallback;
 }
 
+function appUrl(): string {
+  return (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
+}
+
+/** Supabase-ийн англи алдааг хэрэглэгчид ойлгомжтой монгол текст болгоно. */
+function authErrorMessage(message: string): string {
+  const m = message.toLowerCase();
+  if (m.includes("invalid login credentials")) return "Имэйл эсвэл нууц үг буруу байна.";
+  if (m.includes("email not confirmed")) {
+    return "Имэйлээ баталгаажуулаагүй байна. Бүртгүүлэхэд ирсэн холбоосоор орно уу.";
+  }
+  if (m.includes("rate limit") || m.includes("too many")) {
+    return "Хэт олон удаа оролдлоо. Түр хүлээгээд дахин оролдоно уу.";
+  }
+  if (m.includes("should be different")) return "Шинэ нууц үг хуучнаасаа өөр байх ёстой.";
+  if (m.includes("password")) return "Нууц үг шаардлага хангахгүй байна.";
+  return "Алдаа гарлаа. Дахин оролдоно уу.";
+}
+
 // ---------- Нэвтрэлт ----------
 
 export async function signup(_prev: FormState | undefined, formData: FormData): Promise<FormState> {
@@ -64,21 +76,33 @@ export async function signup(_prev: FormState | undefined, formData: FormData): 
   if (!terms) fieldErrors.terms = "Хариуцлагын тайлбарыг зөвшөөрнө үү.";
   if (Object.keys(fieldErrors).length > 0) return { fieldErrors, values };
 
-  let userId: number;
-  try {
-    const result = db
-      .prepare("INSERT INTO users (email, password_hash, name, phone, created_at) VALUES (?, ?, ?, ?, ?)")
-      .run(email, hashPassword(password), name, phone || null, new Date().toISOString());
-    userId = Number(result.lastInsertRowid);
-  } catch (error) {
-    if (error instanceof Error && error.message.includes("UNIQUE")) {
-      return { fieldErrors: { email: "Энэ имэйлээр бүртгэл үүссэн байна. Нэвтэрч орно уу." }, values };
-    }
-    throw error;
+  const next = safeNext(formData, "/");
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      // profiles мөрийг үүсгэх trigger нь эдгээр утгыг ашиглана
+      data: { name, phone: phone || null },
+      emailRedirectTo: `${appUrl()}/auth/callback?next=${encodeURIComponent(next)}`,
+    },
+  });
+
+  if (error) {
+    return { error: authErrorMessage(error.message), values };
   }
 
-  await createSession(userId);
-  redirect(safeNext(formData, "/"));
+  // Бүртгэлтэй имэйлийг задруулахгүйн тулд Supabase хуурамч хэрэглэгч буцаадаг
+  if (data.user && data.user.identities?.length === 0) {
+    return { fieldErrors: { email: "Энэ имэйлээр бүртгэл үүссэн байна. Нэвтэрч орно уу." }, values };
+  }
+
+  // Имэйл баталгаажуулалт асаалттай үед session шууд үүсэхгүй
+  if (!data.session) {
+    return { notice: `${email} хаяг руу баталгаажуулах холбоос илгээлээ. Имэйлээ шалгана уу.` };
+  }
+
+  redirect(next);
 }
 
 export async function login(_prev: FormState | undefined, formData: FormData): Promise<FormState> {
@@ -90,20 +114,68 @@ export async function login(_prev: FormState | undefined, formData: FormData): P
     return { error: "Имэйл болон нууц үгээ оруулна уу.", values };
   }
 
-  const user = db.prepare("SELECT id, password_hash FROM users WHERE email = ?").get(email) as
-    | { id: number; password_hash: string }
-    | undefined;
-
-  if (!user || !verifyPassword(password, user.password_hash)) {
-    return { error: "Имэйл эсвэл нууц үг буруу байна.", values };
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) {
+    return { error: authErrorMessage(error.message), values };
   }
 
-  await createSession(user.id);
   redirect(safeNext(formData, "/"));
 }
 
 export async function logout(): Promise<void> {
-  await destroySession();
+  const supabase = await createClient();
+  await supabase.auth.signOut();
+  redirect("/");
+}
+
+// ---------- Нууц үг сэргээх ----------
+
+export async function requestPasswordReset(
+  _prev: FormState | undefined,
+  formData: FormData
+): Promise<FormState> {
+  const email = str(formData, "email").toLowerCase();
+  if (!EMAIL_RE.test(email)) {
+    return { error: "Имэйл хаягаа зөв оруулна уу.", values: { email } };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${appUrl()}/auth/callback?next=${encodeURIComponent("/reset-password")}`,
+  });
+
+  // Хурдны хязгаараас бусад алдааг мэдэгдэхгүй: тухайн имэйл бүртгэлтэй эсэхийг
+  // задруулахгүйн тулд үргэлж ижил хариу буцаана.
+  if (error && /rate limit|too many/i.test(error.message)) {
+    return { error: authErrorMessage(error.message), values: { email } };
+  }
+
+  return {
+    notice: `Хэрэв ${email} хаягаар бүртгэл байгаа бол нууц үг сэргээх холбоос илгээгдлээ. Имэйлээ шалгана уу.`,
+  };
+}
+
+export async function updatePassword(_prev: FormState | undefined, formData: FormData): Promise<FormState> {
+  const password = rawStr(formData, "password");
+  const confirm = rawStr(formData, "password_confirm");
+
+  const fieldErrors: Record<string, string> = {};
+  if (password.length < 8) fieldErrors.password = "Нууц үг дор хаяж 8 тэмдэгт байх ёстой.";
+  else if (password !== confirm) fieldErrors.password_confirm = "Хоёр нууц үг таарахгүй байна.";
+  if (Object.keys(fieldErrors).length > 0) return { fieldErrors };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { error: "Холбоосын хугацаа дууссан байна. Дахин хүсэлт илгээнэ үү." };
+  }
+
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) return { error: authErrorMessage(error.message) };
+
   redirect("/");
 }
 
@@ -175,7 +247,7 @@ export async function createTrip(_prev: FormState | undefined, formData: FormDat
   const result = validateTrip(formData);
   if (!result.ok) return result.state;
 
-  const id = insertTrip({ userId: user.id, ...result.input });
+  const id = await insertTrip({ userId: user.id, ...result.input });
 
   revalidatePath("/trips");
   redirect(`/trips/${id}`);
@@ -189,7 +261,7 @@ export async function updateTrip(_prev: FormState | undefined, formData: FormDat
   const result = validateTrip(formData);
   if (!result.ok) return result.state;
 
-  if (!updateTripRow(id, user.id, result.input)) return { error: "Зар олдсонгүй." };
+  if (!(await updateTripRow(id, user.id, result.input))) return { error: "Зар олдсонгүй." };
 
   revalidatePath("/trips");
   revalidatePath(`/trips/${id}`);
@@ -268,7 +340,7 @@ export async function createShipment(_prev: FormState | undefined, formData: For
   const result = validateShipment(formData);
   if (!result.ok) return result.state;
 
-  const id = insertShipment({ userId: user.id, ...result.input });
+  const id = await insertShipment({ userId: user.id, ...result.input });
 
   revalidatePath("/shipments");
   redirect(`/shipments/${id}`);
@@ -282,7 +354,7 @@ export async function updateShipment(_prev: FormState | undefined, formData: For
   const result = validateShipment(formData);
   if (!result.ok) return result.state;
 
-  if (!updateShipmentRow(id, user.id, result.input)) return { error: "Зар олдсонгүй." };
+  if (!(await updateShipmentRow(id, user.id, result.input))) return { error: "Зар олдсонгүй." };
 
   revalidatePath("/shipments");
   revalidatePath(`/shipments/${id}`);
@@ -308,7 +380,7 @@ export async function closeListing(formData: FormData): Promise<void> {
   const user = await requireUser("/my");
   const params = listingParams(formData);
   if (params) {
-    closeListingRow(params.type, params.id, user.id);
+    await closeListingRow(params.type, params.id, user.id);
     revalidateListing(params.type, params.id);
   }
   redirect("/my");
@@ -320,10 +392,10 @@ export async function reopenListing(formData: FormData): Promise<void> {
   if (params) {
     // Огноо нь өнгөрсөн аялалыг дахин нээхгүй
     if (params.type === "trip") {
-      const trip = getTrip(params.id);
+      const trip = await getTrip(params.id);
       if (!trip || trip.travel_date < new Date().toISOString().slice(0, 10)) redirect("/my");
     }
-    reopenListingRow(params.type, params.id, user.id);
+    await reopenListingRow(params.type, params.id, user.id);
     revalidateListing(params.type, params.id);
   }
   redirect("/my");
@@ -333,7 +405,7 @@ export async function deleteListing(formData: FormData): Promise<void> {
   const user = await requireUser("/my");
   const params = listingParams(formData);
   if (params) {
-    deleteListingRow(params.type, params.id, user.id);
+    await deleteListingRow(params.type, params.id, user.id);
     revalidateListing(params.type, params.id);
   }
   redirect("/my");
@@ -353,11 +425,11 @@ export async function sendMessage(_prev: FormState | undefined, formData: FormDa
   if (conversationIdRaw) {
     // Байгаа харилцан яриан дахь хариу
     const conversationId = Number(conversationIdRaw);
-    const conversation = Number.isInteger(conversationId) ? getConversation(conversationId) : null;
+    const conversation = Number.isInteger(conversationId) ? await getConversation(conversationId) : null;
     if (!conversation || (conversation.starter_id !== user.id && conversation.owner_id !== user.id)) {
       return { error: "Харилцан яриа олдсонгүй." };
     }
-    addMessage(conversation.id, user.id, body);
+    await addMessage(conversation.id, user.id, body);
     revalidatePath(`/messages/${conversation.id}`);
     revalidatePath("/messages");
     return {};
@@ -369,12 +441,12 @@ export async function sendMessage(_prev: FormState | undefined, formData: FormDa
   if ((type !== "trip" && type !== "shipment") || !Number.isInteger(listingId)) {
     return { error: "Зар олдсонгүй." };
   }
-  const listing = type === "trip" ? getTrip(listingId) : getShipment(listingId);
+  const listing = type === "trip" ? await getTrip(listingId) : await getShipment(listingId);
   if (!listing) return { error: "Зар олдсонгүй." };
   if (listing.user_id === user.id) return { error: "Өөрийн зар руу мессеж илгээх боломжгүй." };
 
-  const conversationId = getOrCreateConversation(type as ListingType, listingId, user.id, listing.user_id);
-  addMessage(conversationId, user.id, body);
+  const conversationId = await getOrCreateConversation(type as ListingType, listingId, user.id, listing.user_id);
+  await addMessage(conversationId, user.id, body);
   revalidatePath("/messages");
   redirect(`/messages/${conversationId}`);
 }
@@ -392,18 +464,18 @@ export async function submitReview(_prev: FormState | undefined, formData: FormD
   if (!Number.isInteger(rating) || rating < 1 || rating > 5) return { error: "Одоор үнэлгээгээ сонгоно уу." };
   if (comment.length > 1000) return { error: "Сэтгэгдэл хэт урт байна.", values: { comment } };
 
-  const conversation = Number.isInteger(conversationId) ? getConversation(conversationId) : null;
+  const conversation = Number.isInteger(conversationId) ? await getConversation(conversationId) : null;
   if (!conversation || (conversation.starter_id !== user.id && conversation.owner_id !== user.id)) {
     return { error: "Харилцан яриа олдсонгүй." };
   }
 
   const revieweeId = conversation.starter_id === user.id ? conversation.owner_id : conversation.starter_id;
   // Нөгөө тал нь бодитоор харилцсан байж гэмээнэ үнэлгээ авна
-  if (!hasMessageFrom(conversation.id, revieweeId)) {
+  if (!(await hasMessageFrom(conversation.id, revieweeId))) {
     return { error: "Нөгөө тал хариу бичсэний дараа үнэлгээ өгөх боломжтой." };
   }
 
-  upsertReview({
+  await upsertReview({
     conversationId: conversation.id,
     reviewerId: user.id,
     revieweeId,

@@ -3,14 +3,21 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import { signup } from "@/lib/actions";
-import { btnPrimary, FieldError, inputCls, labelCls } from "@/components/ui";
+import { btnPrimary, FieldError, FormError, FormNotice, inputCls, labelCls } from "@/components/ui";
 
 export function SignupForm({ next }: { next?: string }) {
   const [state, action, pending] = useActionState(signup, undefined);
 
+  // Имэйл баталгаажуулах шаардлагатай үед формыг дахин үзүүлэх шаардлагагүй
+  if (state?.notice) {
+    return <FormNotice message={state.notice} />;
+  }
+
   return (
     <form action={action} className="flex flex-col gap-4">
       {next ? <input type="hidden" name="next" value={next} /> : null}
+
+      <FormError message={state?.error} />
 
       <div>
         <label htmlFor="name" className={labelCls}>

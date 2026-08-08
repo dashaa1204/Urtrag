@@ -1,6 +1,6 @@
 import type { Review, Shipment, Trip, UserProfile, UserRating } from "@/types";
 import { formatDate } from "@/lib/format";
-import { LocalTime, RatingSummary, ShipmentCard, Stars, TripCard } from "@/components/ui";
+import { Avatar, LocalTime, RatingSummary, ShipmentCard, Stars, TripCard } from "@/components/ui";
 
 interface UserProfileViewProps {
   profile: UserProfile;
@@ -15,9 +15,7 @@ export default function UserProfileView({ profile, rating, reviews, trips, shipm
     <div className="mx-auto w-full max-w-3xl px-4 py-8">
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
         <div className="flex items-center gap-4">
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-xl font-bold text-indigo-600">
-            {profile.name.charAt(0).toUpperCase()}
-          </div>
+          <Avatar name={profile.name} size="lg" />
           <div className="min-w-0">
             <h1 className="break-words text-xl font-bold text-slate-900">{profile.name}</h1>
             <p className="mt-0.5 flex flex-wrap items-center gap-2 text-sm text-slate-500">

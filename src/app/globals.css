@@ -7,3 +7,91 @@
 body {
   font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 }
+
+/*
+  "Хэрхэн ажилладаг вэ?" хэсгийн дэвсгэр дээр нисэх онгоц.
+  offset-path нь SVG дэх маршрутын зурааст замтай ЯГ ИЖИЛ байх ёстой
+  — how-it-works.tsx доторх ROUTE_PATH-ыг харна уу.
+*/
+.zd-plane {
+  offset-path: path("M 90 196 C 400 52, 800 52, 1110 132");
+  offset-rotate: auto;
+}
+
+/* Шөнийн тэнгэрийн анивчих од. Үргэлжлэх хугацаа/саатлыг од бүрт inline-аар өгнө. */
+@keyframes zd-twinkle {
+  0%,
+  100% {
+    opacity: 0.12;
+  }
+  50% {
+    opacity: 0.95;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .zd-star {
+    animation-name: zd-twinkle;
+    animation-timing-function: ease-in-out;
+    animation-iteration-count: infinite;
+  }
+}
+
+/*
+  Бөмбөрцгийн эргэлт. Эргэлдэх уртрагийн шугам нь дэлгэцэд R·cos(өнцөг)
+  өргөнтэй эллипс болж буудаг тул rx-ийг синусоид хэлбэрээр хэлбэлзүүлнэ.
+  cubic-bezier нь косинусын хурдыг ойролцоолно — тогтмол хурдтай эргэлт төрүүлнэ.
+*/
+@keyframes zd-spin {
+  0%,
+  100% {
+    rx: 199px;
+  }
+  50% {
+    rx: 0px;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .zd-meridian {
+    animation-name: zd-spin;
+    animation-duration: 40s;
+    animation-timing-function: cubic-bezier(0.37, 0, 0.63, 1);
+    animation-iteration-count: infinite;
+  }
+}
+
+@keyframes zd-fly {
+  from {
+    offset-distance: 0%;
+  }
+  to {
+    offset-distance: 100%;
+  }
+}
+
+/*
+  Онгоцны ард үлдэх гэрэлт мөр. strokeDasharray="13 100" ба pathLength="100"
+  тул зурааст хэсгийн урд ирмэг нь (13 − dashoffset) байрлалд байна:
+  13 → −87 хооронд хэлбэлзэхэд ирмэг замын 0%-100%-ийг туулж, онгоцтой
+  яг синхрон явна. Хугацаа нь .zd-plane-тэй ижил байх ЁСТОЙ.
+*/
+@keyframes zd-trail {
+  from {
+    stroke-dashoffset: 13;
+  }
+  to {
+    stroke-dashoffset: -87;
+  }
+}
+
+/* Хөдөлгөөн багасгах тохиргоотой хэрэглэгчид онгоц Вена дээр зогсоно. */
+@media (prefers-reduced-motion: no-preference) {
+  .zd-plane {
+    animation: zd-fly 14s linear infinite;
+  }
+
+  .zd-trail {
+    animation: zd-trail 14s linear infinite;
+  }
+}

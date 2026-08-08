@@ -8,8 +8,12 @@ export const metadata: Metadata = { title: "Ачааны хүсэлт" };
 
 export default async function ShipmentDetailPage({ params }: PageProps<"/shipments/[id]">) {
   const { id } = await params;
-  const shipment = getShipment(Number(id));
+  const shipmentId = Number(id);
+  if (!Number.isInteger(shipmentId)) notFound();
+
+  const shipment = await getShipment(shipmentId);
   if (!shipment) notFound();
-  const viewer = await getCurrentUser();
-  return <ShipmentDetailView shipment={shipment} viewer={viewer} ownerRating={getUserRating(shipment.user_id)} />;
+
+  const [viewer, ownerRating] = await Promise.all([getCurrentUser(), getUserRating(shipment.user_id)]);
+  return <ShipmentDetailView shipment={shipment} viewer={viewer} ownerRating={ownerRating} />;
 }

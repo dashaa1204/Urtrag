@@ -8,5 +8,5 @@ export const metadata: Metadata = { title: "Ачаанууд" };
 export default async function ShipmentsPage({ searchParams }: PageProps<"/shipments">) {
   const { direction } = await searchParams;
   const filter = isDirection(direction) ? direction : undefined;
-  return <ShipmentsView shipments={listShipments({ direction: filter })} direction={filter} />;
+  return <ShipmentsView shipments={await listShipments({ direction: filter })} direction={filter} />;
 }

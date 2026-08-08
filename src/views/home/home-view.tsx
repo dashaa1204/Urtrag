@@ -20,7 +20,7 @@ export default function HomeView({ trips, shipments }: { trips: Trip[]; shipment
       <Hero />
       <HowItWorks />
 
-      <section className="mx-auto w-full max-w-5xl px-4 pb-12">
+      <section className="mx-auto w-full max-w-5xl px-4 py-12 md:py-16">
         <SectionHeader title="Сүүлийн аялалууд" href="/trips" />
         {trips.length === 0 ? (
           <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
@@ -35,7 +35,7 @@ export default function HomeView({ trips, shipments }: { trips: Trip[]; shipment
         )}
       </section>
 
-      <section className="mx-auto w-full max-w-5xl px-4 pb-16">
+      <section className="mx-auto w-full max-w-5xl px-4 pb-12 md:pb-16">
         <SectionHeader title="Сүүлийн ачаанууд" href="/shipments" />
         {shipments.length === 0 ? (
           <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">

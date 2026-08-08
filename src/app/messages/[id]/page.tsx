@@ -18,26 +18,35 @@ export const metadata: Metadata = { title: "Харилцан яриа" };
 
 export default async function ConversationPage({ params }: PageProps<"/messages/[id]">) {
   const { id } = await params;
+  const conversationId = Number(id);
+  if (!Number.isInteger(conversationId)) notFound();
+
   const user = await requireUser("/messages");
 
-  const conversation = getConversation(Number(id));
+  const conversation = await getConversation(conversationId);
   if (!conversation || (conversation.starter_id !== user.id && conversation.owner_id !== user.id)) {
     notFound();
   }
 
-  markConversationRead(conversation.id, user.id);
+  await markConversationRead(conversation.id, user.id);
 
   const otherId = conversation.starter_id === user.id ? conversation.owner_id : conversation.starter_id;
-  const otherName = getUserName(otherId) ?? "Хэрэглэгч";
+
+  const [otherName, messages, canReview, ownReview] = await Promise.all([
+    getUserName(otherId),
+    listMessages(conversation.id),
+    hasMessageFrom(conversation.id, otherId),
+    getOwnReview(conversation.id, user.id),
+  ]);
 
   let listingTitle: string;
   let listingHref: string;
   if (conversation.listing_type === "trip") {
-    const trip = getTrip(conversation.listing_id);
+    const trip = await getTrip(conversation.listing_id);
     listingTitle = trip ? `Аялал · ${formatDate(trip.travel_date)}` : "Аялал";
     listingHref = `/trips/${conversation.listing_id}`;
   } else {
-    const shipment = getShipment(conversation.listing_id);
+    const shipment = await getShipment(conversation.listing_id);
     listingTitle = shipment ? `Ачаа · ${formatKg(shipment.weight_kg)}` : "Ачаа";
     listingHref = `/shipments/${conversation.listing_id}`;
   }
@@ -45,13 +54,13 @@ export default async function ConversationPage({ params }: PageProps<"/messages/
   return (
     <ConversationView
       conversation={conversation}
-      messages={listMessages(conversation.id)}
+      messages={messages}
       currentUserId={user.id}
-      otherName={otherName}
+      otherName={otherName ?? "Хэрэглэгч"}
       listingTitle={listingTitle}
       listingHref={listingHref}
-      canReview={hasMessageFrom(conversation.id, otherId)}
-      ownReview={getOwnReview(conversation.id, user.id)}
+      canReview={canReview}
+      ownReview={ownReview}
     />
   );
 }

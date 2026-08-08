@@ -1,5 +1,7 @@
+export { Avatar } from "./avatar";
 export { DirectionFilter } from "./direction-filter";
-export { btnPrimary, btnSecondary, FieldError, FormError, inputCls, labelCls } from "./form";
+export { BellIcon, ChatIcon, PackageIcon, SearchIcon } from "./icons";
+export { btnPrimary, btnSecondary, FieldError, FormError, FormNotice, inputCls, labelCls } from "./form";
 export { LocalTime } from "./local-time";
 export { MessageForm } from "./message-form";
 export { ShipmentCard } from "./shipment-card";

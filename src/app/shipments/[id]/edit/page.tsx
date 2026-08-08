@@ -8,8 +8,11 @@ export const metadata: Metadata = { title: "Ачааны хүсэлт засах
 
 export default async function ShipmentEditPage({ params }: PageProps<"/shipments/[id]/edit">) {
   const { id } = await params;
+  const shipmentId = Number(id);
+  if (!Number.isInteger(shipmentId)) notFound();
+
   const user = await requireUser();
-  const shipment = getShipment(Number(id));
+  const shipment = await getShipment(shipmentId);
   if (!shipment || shipment.user_id !== user.id) notFound();
   return <ShipmentEditView shipment={shipment} />;
 }

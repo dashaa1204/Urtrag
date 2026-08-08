@@ -1,4 +1,6 @@
+import { and, count, desc, eq, gte, inArray, isNull, ne, or, sql } from "drizzle-orm";
 import { db } from "./db";
+import { conversations, messages, profiles, reviews, shipments, trips } from "./db/schema";
 import { formatDate, formatKg } from "./format";
 import type {
   Conversation,
@@ -9,43 +11,86 @@ import type {
   Review,
   Shipment,
   Trip,
+  UserId,
   UserProfile,
   UserRating,
 } from "@/types";
-
-const TRIP_SELECT = `SELECT t.*, u.name AS user_name FROM trips t JOIN users u ON u.id = t.user_id`;
-const SHIPMENT_SELECT = `SELECT s.*, u.name AS user_name FROM shipments s JOIN users u ON u.id = s.user_id`;
 
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+/** Views нь snake_case талбар хүлээдэг тул сонголтуудыг тэр хэлбэрээр нь буцаана. */
+const tripFields = {
+  id: trips.id,
+  user_id: trips.userId,
+  direction: trips.direction,
+  from_city: trips.fromCity,
+  to_city: trips.toCity,
+  travel_date: trips.travelDate,
+  available_kg: trips.availableKg,
+  price_per_kg: trips.pricePerKg,
+  notes: trips.notes,
+  status: trips.status,
+  created_at: trips.createdAt,
+  user_name: profiles.name,
+};
+
+const shipmentFields = {
+  id: shipments.id,
+  user_id: shipments.userId,
+  direction: shipments.direction,
+  from_city: shipments.fromCity,
+  to_city: shipments.toCity,
+  weight_kg: shipments.weightKg,
+  ready_date: shipments.readyDate,
+  deadline_date: shipments.deadlineDate,
+  description: shipments.description,
+  offer_price: shipments.offerPrice,
+  status: shipments.status,
+  created_at: shipments.createdAt,
+  user_name: profiles.name,
+};
+
 // ---------- Аялал ----------
 
-export function listTrips(filter: { direction?: Direction } = {}): Trip[] {
-  const where = ["t.status = 'active'", "t.travel_date >= ?"];
-  const params: unknown[] = [todayIso()];
-  if (filter.direction) {
-    where.push("t.direction = ?");
-    params.push(filter.direction);
-  }
+export async function listTrips(filter: { direction?: Direction } = {}): Promise<Trip[]> {
   return db
-    .prepare(`${TRIP_SELECT} WHERE ${where.join(" AND ")} ORDER BY t.travel_date ASC`)
-    .all(...params) as Trip[];
+    .select(tripFields)
+    .from(trips)
+    .innerJoin(profiles, eq(profiles.id, trips.userId))
+    .where(
+      and(
+        eq(trips.status, "active"),
+        gte(trips.travelDate, todayIso()),
+        filter.direction ? eq(trips.direction, filter.direction) : undefined
+      )
+    )
+    .orderBy(trips.travelDate);
 }
 
-export function latestTrips(limit: number): Trip[] {
+export async function latestTrips(limit: number): Promise<Trip[]> {
   return db
-    .prepare(`${TRIP_SELECT} WHERE t.status = 'active' AND t.travel_date >= ? ORDER BY t.created_at DESC LIMIT ?`)
-    .all(todayIso(), limit) as Trip[];
+    .select(tripFields)
+    .from(trips)
+    .innerJoin(profiles, eq(profiles.id, trips.userId))
+    .where(and(eq(trips.status, "active"), gte(trips.travelDate, todayIso())))
+    .orderBy(desc(trips.createdAt))
+    .limit(limit);
 }
 
-export function getTrip(id: number): Trip | null {
-  return (db.prepare(`${TRIP_SELECT} WHERE t.id = ?`).get(id) as Trip | undefined) ?? null;
+export async function getTrip(id: number): Promise<Trip | null> {
+  const [row] = await db
+    .select(tripFields)
+    .from(trips)
+    .innerJoin(profiles, eq(profiles.id, trips.userId))
+    .where(eq(trips.id, id))
+    .limit(1);
+  return row ?? null;
 }
 
-export function createTrip(input: {
-  userId: number;
+export async function createTrip(input: {
+  userId: UserId;
   direction: Direction;
   fromCity: string | null;
   toCity: string | null;
@@ -53,33 +98,35 @@ export function createTrip(input: {
   availableKg: number;
   pricePerKg: number;
   notes: string | null;
-}): number {
-  const result = db
-    .prepare(
-      `INSERT INTO trips (user_id, direction, from_city, to_city, travel_date, available_kg, price_per_kg, notes, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    )
-    .run(
-      input.userId,
-      input.direction,
-      input.fromCity,
-      input.toCity,
-      input.travelDate,
-      input.availableKg,
-      input.pricePerKg,
-      input.notes,
-      new Date().toISOString()
-    );
-  return Number(result.lastInsertRowid);
+}): Promise<number> {
+  const [row] = await db
+    .insert(trips)
+    .values({
+      userId: input.userId,
+      direction: input.direction,
+      fromCity: input.fromCity,
+      toCity: input.toCity,
+      travelDate: input.travelDate,
+      availableKg: input.availableKg,
+      pricePerKg: input.pricePerKg,
+      notes: input.notes,
+    })
+    .returning({ id: trips.id });
+  return row.id;
 }
 
-export function myTrips(userId: number): Trip[] {
-  return db.prepare(`${TRIP_SELECT} WHERE t.user_id = ? ORDER BY t.created_at DESC`).all(userId) as Trip[];
+export async function myTrips(userId: UserId): Promise<Trip[]> {
+  return db
+    .select(tripFields)
+    .from(trips)
+    .innerJoin(profiles, eq(profiles.id, trips.userId))
+    .where(eq(trips.userId, userId))
+    .orderBy(desc(trips.createdAt));
 }
 
-export function updateTrip(
+export async function updateTrip(
   id: number,
-  userId: number,
+  userId: UserId,
   input: {
     direction: Direction;
     fromCity: string | null;
@@ -89,52 +136,56 @@ export function updateTrip(
     pricePerKg: number;
     notes: string | null;
   }
-): boolean {
-  const result = db
-    .prepare(
-      `UPDATE trips SET direction = ?, from_city = ?, to_city = ?, travel_date = ?, available_kg = ?, price_per_kg = ?, notes = ?
-       WHERE id = ? AND user_id = ?`
-    )
-    .run(
-      input.direction,
-      input.fromCity,
-      input.toCity,
-      input.travelDate,
-      input.availableKg,
-      input.pricePerKg,
-      input.notes,
-      id,
-      userId
-    );
-  return result.changes > 0;
+): Promise<boolean> {
+  const rows = await db
+    .update(trips)
+    .set({
+      direction: input.direction,
+      fromCity: input.fromCity,
+      toCity: input.toCity,
+      travelDate: input.travelDate,
+      availableKg: input.availableKg,
+      pricePerKg: input.pricePerKg,
+      notes: input.notes,
+    })
+    .where(and(eq(trips.id, id), eq(trips.userId, userId)))
+    .returning({ id: trips.id });
+  return rows.length > 0;
 }
 
 // ---------- Ачаа ----------
 
-export function listShipments(filter: { direction?: Direction } = {}): Shipment[] {
-  const where = ["s.status = 'active'"];
-  const params: unknown[] = [];
-  if (filter.direction) {
-    where.push("s.direction = ?");
-    params.push(filter.direction);
-  }
+export async function listShipments(filter: { direction?: Direction } = {}): Promise<Shipment[]> {
   return db
-    .prepare(`${SHIPMENT_SELECT} WHERE ${where.join(" AND ")} ORDER BY s.created_at DESC`)
-    .all(...params) as Shipment[];
+    .select(shipmentFields)
+    .from(shipments)
+    .innerJoin(profiles, eq(profiles.id, shipments.userId))
+    .where(and(eq(shipments.status, "active"), filter.direction ? eq(shipments.direction, filter.direction) : undefined))
+    .orderBy(desc(shipments.createdAt));
 }
 
-export function latestShipments(limit: number): Shipment[] {
+export async function latestShipments(limit: number): Promise<Shipment[]> {
   return db
-    .prepare(`${SHIPMENT_SELECT} WHERE s.status = 'active' ORDER BY s.created_at DESC LIMIT ?`)
-    .all(limit) as Shipment[];
+    .select(shipmentFields)
+    .from(shipments)
+    .innerJoin(profiles, eq(profiles.id, shipments.userId))
+    .where(eq(shipments.status, "active"))
+    .orderBy(desc(shipments.createdAt))
+    .limit(limit);
 }
 
-export function getShipment(id: number): Shipment | null {
-  return (db.prepare(`${SHIPMENT_SELECT} WHERE s.id = ?`).get(id) as Shipment | undefined) ?? null;
+export async function getShipment(id: number): Promise<Shipment | null> {
+  const [row] = await db
+    .select(shipmentFields)
+    .from(shipments)
+    .innerJoin(profiles, eq(profiles.id, shipments.userId))
+    .where(eq(shipments.id, id))
+    .limit(1);
+  return row ?? null;
 }
 
-export function createShipment(input: {
-  userId: number;
+export async function createShipment(input: {
+  userId: UserId;
   direction: Direction;
   fromCity: string | null;
   toCity: string | null;
@@ -143,34 +194,36 @@ export function createShipment(input: {
   deadlineDate: string | null;
   description: string;
   offerPrice: number | null;
-}): number {
-  const result = db
-    .prepare(
-      `INSERT INTO shipments (user_id, direction, from_city, to_city, weight_kg, ready_date, deadline_date, description, offer_price, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    )
-    .run(
-      input.userId,
-      input.direction,
-      input.fromCity,
-      input.toCity,
-      input.weightKg,
-      input.readyDate,
-      input.deadlineDate,
-      input.description,
-      input.offerPrice,
-      new Date().toISOString()
-    );
-  return Number(result.lastInsertRowid);
+}): Promise<number> {
+  const [row] = await db
+    .insert(shipments)
+    .values({
+      userId: input.userId,
+      direction: input.direction,
+      fromCity: input.fromCity,
+      toCity: input.toCity,
+      weightKg: input.weightKg,
+      readyDate: input.readyDate,
+      deadlineDate: input.deadlineDate,
+      description: input.description,
+      offerPrice: input.offerPrice,
+    })
+    .returning({ id: shipments.id });
+  return row.id;
 }
 
-export function myShipments(userId: number): Shipment[] {
-  return db.prepare(`${SHIPMENT_SELECT} WHERE s.user_id = ? ORDER BY s.created_at DESC`).all(userId) as Shipment[];
+export async function myShipments(userId: UserId): Promise<Shipment[]> {
+  return db
+    .select(shipmentFields)
+    .from(shipments)
+    .innerJoin(profiles, eq(profiles.id, shipments.userId))
+    .where(eq(shipments.userId, userId))
+    .orderBy(desc(shipments.createdAt));
 }
 
-export function updateShipment(
+export async function updateShipment(
   id: number,
-  userId: number,
+  userId: UserId,
   input: {
     direction: Direction;
     fromCity: string | null;
@@ -181,211 +234,377 @@ export function updateShipment(
     description: string;
     offerPrice: number | null;
   }
-): boolean {
-  const result = db
-    .prepare(
-      `UPDATE shipments SET direction = ?, from_city = ?, to_city = ?, weight_kg = ?, ready_date = ?, deadline_date = ?, description = ?, offer_price = ?
-       WHERE id = ? AND user_id = ?`
-    )
-    .run(
-      input.direction,
-      input.fromCity,
-      input.toCity,
-      input.weightKg,
-      input.readyDate,
-      input.deadlineDate,
-      input.description,
-      input.offerPrice,
-      id,
-      userId
-    );
-  return result.changes > 0;
+): Promise<boolean> {
+  const rows = await db
+    .update(shipments)
+    .set({
+      direction: input.direction,
+      fromCity: input.fromCity,
+      toCity: input.toCity,
+      weightKg: input.weightKg,
+      readyDate: input.readyDate,
+      deadlineDate: input.deadlineDate,
+      description: input.description,
+      offerPrice: input.offerPrice,
+    })
+    .where(and(eq(shipments.id, id), eq(shipments.userId, userId)))
+    .returning({ id: shipments.id });
+  return rows.length > 0;
 }
 
 // ---------- Зар хаах / нээх / устгах ----------
 
-export function closeListing(type: ListingType, id: number, userId: number): boolean {
-  const table = type === "trip" ? "trips" : "shipments";
-  const result = db.prepare(`UPDATE ${table} SET status = 'closed' WHERE id = ? AND user_id = ?`).run(id, userId);
-  return result.changes > 0;
+async function setListingStatus(
+  type: ListingType,
+  id: number,
+  userId: UserId,
+  status: "active" | "closed"
+): Promise<boolean> {
+  if (type === "trip") {
+    const rows = await db
+      .update(trips)
+      .set({ status })
+      .where(and(eq(trips.id, id), eq(trips.userId, userId)))
+      .returning({ id: trips.id });
+    return rows.length > 0;
+  }
+  const rows = await db
+    .update(shipments)
+    .set({ status })
+    .where(and(eq(shipments.id, id), eq(shipments.userId, userId)))
+    .returning({ id: shipments.id });
+  return rows.length > 0;
 }
 
-export function reopenListing(type: ListingType, id: number, userId: number): boolean {
-  const table = type === "trip" ? "trips" : "shipments";
-  const result = db.prepare(`UPDATE ${table} SET status = 'active' WHERE id = ? AND user_id = ?`).run(id, userId);
-  return result.changes > 0;
+export function closeListing(type: ListingType, id: number, userId: UserId): Promise<boolean> {
+  return setListingStatus(type, id, userId, "closed");
 }
 
-export function deleteListing(type: ListingType, id: number, userId: number): boolean {
-  const table = type === "trip" ? "trips" : "shipments";
-  const result = db.prepare(`DELETE FROM ${table} WHERE id = ? AND user_id = ?`).run(id, userId);
-  return result.changes > 0;
+export function reopenListing(type: ListingType, id: number, userId: UserId): Promise<boolean> {
+  return setListingStatus(type, id, userId, "active");
+}
+
+export async function deleteListing(type: ListingType, id: number, userId: UserId): Promise<boolean> {
+  if (type === "trip") {
+    const rows = await db
+      .delete(trips)
+      .where(and(eq(trips.id, id), eq(trips.userId, userId)))
+      .returning({ id: trips.id });
+    return rows.length > 0;
+  }
+  const rows = await db
+    .delete(shipments)
+    .where(and(eq(shipments.id, id), eq(shipments.userId, userId)))
+    .returning({ id: shipments.id });
+  return rows.length > 0;
 }
 
 // ---------- Харилцан яриа ба мессеж ----------
 
-export function getOrCreateConversation(
+export async function getOrCreateConversation(
   type: ListingType,
   listingId: number,
-  starterId: number,
-  ownerId: number
-): number {
-  const existing = db
-    .prepare(`SELECT id FROM conversations WHERE listing_type = ? AND listing_id = ? AND starter_id = ?`)
-    .get(type, listingId, starterId) as { id: number } | undefined;
-  if (existing) return existing.id;
-  const result = db
-    .prepare(
-      `INSERT INTO conversations (listing_type, listing_id, starter_id, owner_id, created_at) VALUES (?, ?, ?, ?, ?)`
+  starterId: UserId,
+  ownerId: UserId
+): Promise<number> {
+  const [existing] = await db
+    .select({ id: conversations.id })
+    .from(conversations)
+    .where(
+      and(
+        eq(conversations.listingType, type),
+        eq(conversations.listingId, listingId),
+        eq(conversations.starterId, starterId)
+      )
     )
-    .run(type, listingId, starterId, ownerId, new Date().toISOString());
-  return Number(result.lastInsertRowid);
+    .limit(1);
+  if (existing) return existing.id;
+
+  const [row] = await db
+    .insert(conversations)
+    .values({ listingType: type, listingId, starterId, ownerId })
+    .onConflictDoNothing()
+    .returning({ id: conversations.id });
+  if (row) return row.id;
+
+  // Зэрэгцээ хүсэлт давхцвал onConflictDoNothing юу ч буцаахгүй тул дахин уншина
+  const [raced] = await db
+    .select({ id: conversations.id })
+    .from(conversations)
+    .where(
+      and(
+        eq(conversations.listingType, type),
+        eq(conversations.listingId, listingId),
+        eq(conversations.starterId, starterId)
+      )
+    )
+    .limit(1);
+  return raced.id;
 }
 
-export function getConversation(id: number): Conversation | null {
-  return (db.prepare(`SELECT * FROM conversations WHERE id = ?`).get(id) as Conversation | undefined) ?? null;
+export async function getConversation(id: number): Promise<Conversation | null> {
+  const [row] = await db
+    .select({
+      id: conversations.id,
+      listing_type: conversations.listingType,
+      listing_id: conversations.listingId,
+      starter_id: conversations.starterId,
+      owner_id: conversations.ownerId,
+      created_at: conversations.createdAt,
+    })
+    .from(conversations)
+    .where(eq(conversations.id, id))
+    .limit(1);
+  return row ?? null;
 }
 
-export function getUserName(id: number): string | null {
-  const row = db.prepare(`SELECT name FROM users WHERE id = ?`).get(id) as { name: string } | undefined;
+export async function getUserName(id: UserId): Promise<string | null> {
+  const [row] = await db.select({ name: profiles.name }).from(profiles).where(eq(profiles.id, id)).limit(1);
   return row?.name ?? null;
 }
 
-export function listConversations(userId: number): ConversationPreview[] {
-  const rows = db
-    .prepare(
-      `SELECT c.*,
-        (SELECT body FROM messages m WHERE m.conversation_id = c.id ORDER BY m.id DESC LIMIT 1) AS last_body,
-        (SELECT created_at FROM messages m WHERE m.conversation_id = c.id ORDER BY m.id DESC LIMIT 1) AS last_at,
-        (SELECT COUNT(*) FROM messages m WHERE m.conversation_id = c.id AND m.sender_id != ? AND m.read_at IS NULL) AS unread,
-        (SELECT name FROM users WHERE id = CASE WHEN c.starter_id = ? THEN c.owner_id ELSE c.starter_id END) AS other_name
-       FROM conversations c
-       WHERE c.starter_id = ? OR c.owner_id = ?
-       ORDER BY COALESCE(last_at, c.created_at) DESC`
-    )
-    .all(userId, userId, userId, userId) as ConversationPreview[];
+export async function listConversations(userId: UserId): Promise<ConversationPreview[]> {
+  const convs = await db
+    .select({
+      id: conversations.id,
+      listing_type: conversations.listingType,
+      listing_id: conversations.listingId,
+      starter_id: conversations.starterId,
+      owner_id: conversations.ownerId,
+      created_at: conversations.createdAt,
+    })
+    .from(conversations)
+    .where(or(eq(conversations.starterId, userId), eq(conversations.ownerId, userId)));
 
-  for (const row of rows) {
-    if (row.listing_type === "trip") {
-      const trip = getTrip(row.listing_id);
-      row.listing_title = trip ? `Аялал · ${formatDate(trip.travel_date)}` : "Аялал";
-    } else {
-      const shipment = getShipment(row.listing_id);
-      row.listing_title = shipment ? `Ачаа · ${formatKg(shipment.weight_kg)}` : "Ачаа";
-    }
-  }
-  return rows;
+  if (convs.length === 0) return [];
+
+  const ids = convs.map((c) => c.id);
+  const otherIds = [...new Set(convs.map((c) => (c.starter_id === userId ? c.owner_id : c.starter_id)))];
+  const tripIds = convs.filter((c) => c.listing_type === "trip").map((c) => c.listing_id);
+  const shipmentIds = convs.filter((c) => c.listing_type === "shipment").map((c) => c.listing_id);
+
+  // Хамааралт (correlated) subquery бичихээс зайлсхийв: drizzle нь select доторх
+  // raw SQL-д гадна талын баганыг хүснэгтийн нэргүй буулгадаг тул subquery дотор
+  // буруу багана руу заадаг. Тусад нь багцлан уншаад JS дээр нийлүүлнэ.
+  const [lastMessages, unreadRows, names, tripRows, shipmentRows] = await Promise.all([
+    db
+      .selectDistinctOn([messages.conversationId], {
+        conversationId: messages.conversationId,
+        body: messages.body,
+        createdAt: messages.createdAt,
+      })
+      .from(messages)
+      .where(inArray(messages.conversationId, ids))
+      .orderBy(messages.conversationId, desc(messages.id)),
+    db
+      .select({ conversationId: messages.conversationId, unread: count() })
+      .from(messages)
+      .where(
+        and(inArray(messages.conversationId, ids), ne(messages.senderId, userId), isNull(messages.readAt))
+      )
+      .groupBy(messages.conversationId),
+    db.select({ id: profiles.id, name: profiles.name }).from(profiles).where(inArray(profiles.id, otherIds)),
+    tripIds.length
+      ? db
+          .select({ id: trips.id, travelDate: trips.travelDate })
+          .from(trips)
+          .where(inArray(trips.id, tripIds))
+      : [],
+    shipmentIds.length
+      ? db
+          .select({ id: shipments.id, weightKg: shipments.weightKg })
+          .from(shipments)
+          .where(inArray(shipments.id, shipmentIds))
+      : [],
+  ]);
+
+  const lastByConv = new Map(lastMessages.map((m) => [m.conversationId, m]));
+  const unreadByConv = new Map(unreadRows.map((r) => [r.conversationId, r.unread]));
+  const nameById = new Map(names.map((p) => [p.id, p.name]));
+  const tripById = new Map(tripRows.map((t) => [t.id, t]));
+  const shipmentById = new Map(shipmentRows.map((s) => [s.id, s]));
+
+  return convs
+    .map((c) => {
+      const last = lastByConv.get(c.id);
+      const otherId = c.starter_id === userId ? c.owner_id : c.starter_id;
+
+      let listing_title: string;
+      if (c.listing_type === "trip") {
+        const trip = tripById.get(c.listing_id);
+        listing_title = trip ? `Аялал · ${formatDate(trip.travelDate)}` : "Аялал";
+      } else {
+        const shipment = shipmentById.get(c.listing_id);
+        listing_title = shipment ? `Ачаа · ${formatKg(shipment.weightKg)}` : "Ачаа";
+      }
+
+      return {
+        ...c,
+        other_name: nameById.get(otherId) ?? "Хэрэглэгч",
+        listing_title,
+        last_body: last?.body ?? null,
+        last_at: last?.createdAt ?? null,
+        unread: unreadByConv.get(c.id) ?? 0,
+      };
+    })
+    .sort((a, b) => (b.last_at ?? b.created_at).getTime() - (a.last_at ?? a.created_at).getTime());
 }
 
-export function listMessages(conversationId: number): Message[] {
+export async function listMessages(conversationId: number): Promise<Message[]> {
   return db
-    .prepare(
-      `SELECT m.*, u.name AS sender_name FROM messages m JOIN users u ON u.id = m.sender_id
-       WHERE m.conversation_id = ? ORDER BY m.id ASC`
-    )
-    .all(conversationId) as Message[];
+    .select({
+      id: messages.id,
+      conversation_id: messages.conversationId,
+      sender_id: messages.senderId,
+      body: messages.body,
+      created_at: messages.createdAt,
+      read_at: messages.readAt,
+      sender_name: profiles.name,
+    })
+    .from(messages)
+    .innerJoin(profiles, eq(profiles.id, messages.senderId))
+    .where(eq(messages.conversationId, conversationId))
+    .orderBy(messages.id);
 }
 
-export function addMessage(conversationId: number, senderId: number, body: string): void {
-  db.prepare(`INSERT INTO messages (conversation_id, sender_id, body, created_at) VALUES (?, ?, ?, ?)`).run(
-    conversationId,
-    senderId,
-    body,
-    new Date().toISOString()
-  );
+export async function addMessage(conversationId: number, senderId: UserId, body: string): Promise<void> {
+  await db.insert(messages).values({ conversationId, senderId, body });
 }
 
-export function markConversationRead(conversationId: number, readerId: number): void {
-  db.prepare(`UPDATE messages SET read_at = ? WHERE conversation_id = ? AND sender_id != ? AND read_at IS NULL`).run(
-    new Date().toISOString(),
-    conversationId,
-    readerId
-  );
+export async function markConversationRead(conversationId: number, readerId: UserId): Promise<void> {
+  await db
+    .update(messages)
+    .set({ readAt: new Date() })
+    .where(
+      and(eq(messages.conversationId, conversationId), ne(messages.senderId, readerId), isNull(messages.readAt))
+    );
 }
 
-export function hasMessageFrom(conversationId: number, senderId: number): boolean {
-  const row = db
-    .prepare(`SELECT 1 AS x FROM messages WHERE conversation_id = ? AND sender_id = ? LIMIT 1`)
-    .get(conversationId, senderId);
+export async function hasMessageFrom(conversationId: number, senderId: UserId): Promise<boolean> {
+  const [row] = await db
+    .select({ id: messages.id })
+    .from(messages)
+    .where(and(eq(messages.conversationId, conversationId), eq(messages.senderId, senderId)))
+    .limit(1);
   return row !== undefined;
 }
 
 // ---------- Үнэлгээ ----------
 
-export function upsertReview(input: {
+const reviewFields = {
+  id: reviews.id,
+  conversation_id: reviews.conversationId,
+  reviewer_id: reviews.reviewerId,
+  reviewee_id: reviews.revieweeId,
+  rating: reviews.rating,
+  comment: reviews.comment,
+  created_at: reviews.createdAt,
+  reviewer_name: profiles.name,
+};
+
+export async function upsertReview(input: {
   conversationId: number;
-  reviewerId: number;
-  revieweeId: number;
+  reviewerId: UserId;
+  revieweeId: UserId;
   rating: number;
   comment: string | null;
-}): void {
-  db.prepare(
-    `INSERT INTO reviews (conversation_id, reviewer_id, reviewee_id, rating, comment, created_at)
-     VALUES (?, ?, ?, ?, ?, ?)
-     ON CONFLICT (conversation_id, reviewer_id)
-     DO UPDATE SET rating = excluded.rating, comment = excluded.comment, created_at = excluded.created_at`
-  ).run(
-    input.conversationId,
-    input.reviewerId,
-    input.revieweeId,
-    input.rating,
-    input.comment,
-    new Date().toISOString()
-  );
+}): Promise<void> {
+  await db
+    .insert(reviews)
+    .values({
+      conversationId: input.conversationId,
+      reviewerId: input.reviewerId,
+      revieweeId: input.revieweeId,
+      rating: input.rating,
+      comment: input.comment,
+    })
+    .onConflictDoUpdate({
+      target: [reviews.conversationId, reviews.reviewerId],
+      set: { rating: input.rating, comment: input.comment, createdAt: new Date() },
+    });
 }
 
-export function getOwnReview(conversationId: number, reviewerId: number): Review | null {
-  const row = db
-    .prepare(
-      `SELECT r.*, u.name AS reviewer_name FROM reviews r JOIN users u ON u.id = r.reviewer_id
-       WHERE r.conversation_id = ? AND r.reviewer_id = ?`
-    )
-    .get(conversationId, reviewerId) as Review | undefined;
+export async function getOwnReview(conversationId: number, reviewerId: UserId): Promise<Review | null> {
+  const [row] = await db
+    .select(reviewFields)
+    .from(reviews)
+    .innerJoin(profiles, eq(profiles.id, reviews.reviewerId))
+    .where(and(eq(reviews.conversationId, conversationId), eq(reviews.reviewerId, reviewerId)))
+    .limit(1);
   return row ?? null;
 }
 
-export function getUserRating(userId: number): UserRating {
-  const row = db
-    .prepare(`SELECT AVG(rating) AS avg, COUNT(*) AS count FROM reviews WHERE reviewee_id = ?`)
-    .get(userId) as { avg: number | null; count: number };
-  return { avg: row.avg ?? 0, count: row.count };
+export async function getUserRating(userId: UserId): Promise<UserRating> {
+  const [row] = await db
+    .select({
+      avg: sql<number>`COALESCE(AVG(${reviews.rating}), 0)::float8`,
+      count: sql<number>`COUNT(*)::int`,
+    })
+    .from(reviews)
+    .where(eq(reviews.revieweeId, userId));
+  return { avg: row?.avg ?? 0, count: row?.count ?? 0 };
 }
 
-export function listUserReviews(userId: number): Review[] {
+export async function listUserReviews(userId: UserId): Promise<Review[]> {
   return db
-    .prepare(
-      `SELECT r.*, u.name AS reviewer_name FROM reviews r JOIN users u ON u.id = r.reviewer_id
-       WHERE r.reviewee_id = ? ORDER BY r.created_at DESC`
-    )
-    .all(userId) as Review[];
+    .select(reviewFields)
+    .from(reviews)
+    .innerJoin(profiles, eq(profiles.id, reviews.reviewerId))
+    .where(eq(reviews.revieweeId, userId))
+    .orderBy(desc(reviews.createdAt));
+}
+
+/** Хонхны цэсэнд харуулах — хэрэглэгчийн хүлээж авсан сүүлийн үнэлгээнүүд. */
+export async function recentReviews(userId: UserId, limit: number): Promise<Review[]> {
+  return db
+    .select(reviewFields)
+    .from(reviews)
+    .innerJoin(profiles, eq(profiles.id, reviews.reviewerId))
+    .where(eq(reviews.revieweeId, userId))
+    .orderBy(desc(reviews.createdAt))
+    .limit(limit);
 }
 
 // ---------- Хэрэглэгчийн профайл ----------
 
-export function getUserProfile(id: number): UserProfile | null {
-  const row = db.prepare(`SELECT id, name, created_at FROM users WHERE id = ?`).get(id) as UserProfile | undefined;
+export async function getUserProfile(id: UserId): Promise<UserProfile | null> {
+  const [row] = await db
+    .select({ id: profiles.id, name: profiles.name, created_at: profiles.createdAt })
+    .from(profiles)
+    .where(eq(profiles.id, id))
+    .limit(1);
   return row ?? null;
 }
 
-export function userActiveTrips(userId: number): Trip[] {
+export async function userActiveTrips(userId: UserId): Promise<Trip[]> {
   return db
-    .prepare(`${TRIP_SELECT} WHERE t.user_id = ? AND t.status = 'active' AND t.travel_date >= ? ORDER BY t.travel_date ASC`)
-    .all(userId, todayIso()) as Trip[];
+    .select(tripFields)
+    .from(trips)
+    .innerJoin(profiles, eq(profiles.id, trips.userId))
+    .where(and(eq(trips.userId, userId), eq(trips.status, "active"), gte(trips.travelDate, todayIso())))
+    .orderBy(trips.travelDate);
 }
 
-export function userActiveShipments(userId: number): Shipment[] {
+export async function userActiveShipments(userId: UserId): Promise<Shipment[]> {
   return db
-    .prepare(`${SHIPMENT_SELECT} WHERE s.user_id = ? AND s.status = 'active' ORDER BY s.created_at DESC`)
-    .all(userId) as Shipment[];
+    .select(shipmentFields)
+    .from(shipments)
+    .innerJoin(profiles, eq(profiles.id, shipments.userId))
+    .where(and(eq(shipments.userId, userId), eq(shipments.status, "active")))
+    .orderBy(desc(shipments.createdAt));
 }
 
-export function unreadCount(userId: number): number {
-  const row = db
-    .prepare(
-      `SELECT COUNT(*) AS n FROM messages m
-       JOIN conversations c ON c.id = m.conversation_id
-       WHERE (c.starter_id = ? OR c.owner_id = ?) AND m.sender_id != ? AND m.read_at IS NULL`
-    )
-    .get(userId, userId, userId) as { n: number };
-  return row.n;
+export async function unreadCount(userId: UserId): Promise<number> {
+  const [row] = await db
+    .select({ n: sql<number>`COUNT(*)::int` })
+    .from(messages)
+    .innerJoin(conversations, eq(conversations.id, messages.conversationId))
+    .where(
+      and(
+        or(eq(conversations.starterId, userId), eq(conversations.ownerId, userId)),
+        ne(messages.senderId, userId),
+        isNull(messages.readAt)
+      )
+    );
+  return row?.n ?? 0;
 }
