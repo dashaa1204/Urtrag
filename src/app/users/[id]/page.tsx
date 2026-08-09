@@ -7,6 +7,7 @@ import {
   userActiveShipments,
   userActiveTrips,
 } from "@/lib/data";
+import { shipmentSummary, tripSummary } from "@/lib/listing";
 import UserProfileView from "@/views/users/user-profile-view";
 
 export const metadata: Metadata = { title: "Хэрэглэгчийн профайл" };
@@ -29,5 +30,13 @@ export default async function UserProfilePage({ params }: PageProps<"/users/[id]
     userActiveShipments(profile.id),
   ]);
 
-  return <UserProfileView profile={profile} rating={rating} reviews={reviews} trips={trips} shipments={shipments} />;
+  return (
+    <UserProfileView
+      profile={profile}
+      rating={rating}
+      reviews={reviews}
+      trips={trips.map(tripSummary)}
+      shipments={shipments.map(shipmentSummary)}
+    />
+  );
 }

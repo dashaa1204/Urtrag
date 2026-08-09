@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { SessionUser } from "@/types";
 import { logout } from "@/lib/actions";
-import { Avatar } from "@/components/ui";
+import { Avatar, btnPrimary, CountBadge } from "@/components/ui";
 
 const itemCls =
   "flex min-h-11 items-center rounded-lg px-3 text-base font-medium text-slate-700 transition hover:bg-slate-100 hover:text-slate-900";
@@ -28,16 +28,12 @@ export function MobileNav({ user, unread }: { user: SessionUser | null; unread: 
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
         aria-label={open ? "Цэс хаах" : "Цэс нээх"}
-        className="relative -mr-2 flex h-11 w-11 cursor-pointer items-center justify-center rounded-lg text-slate-600 transition hover:bg-slate-100"
+        className="relative -mr-2 flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-400 active:bg-slate-200"
       >
         <span aria-hidden className="text-xl leading-none">
           {open ? "✕" : "☰"}
         </span>
-        {!open && unread > 0 ? (
-          <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
-            {unread}
-          </span>
-        ) : null}
+        {open ? null : <CountBadge count={unread} className="absolute right-0 top-0" />}
       </button>
 
       {open ? (
@@ -67,11 +63,7 @@ export function MobileNav({ user, unread }: { user: SessionUser | null; unread: 
                 </Link>
                 <Link href="/messages" className={itemCls}>
                   Мессеж
-                  {unread > 0 ? (
-                    <span className="ml-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-xs font-bold text-white">
-                      {unread}
-                    </span>
-                  ) : null}
+                  <CountBadge count={unread} className="ml-2" />
                 </Link>
                 <Link href="/my" className={itemCls}>
                   Миний зар
@@ -90,10 +82,7 @@ export function MobileNav({ user, unread }: { user: SessionUser | null; unread: 
                 <Link href="/login" className={itemCls}>
                   Нэвтрэх
                 </Link>
-                <Link
-                  href="/signup"
-                  className="flex min-h-11 items-center justify-center rounded-lg bg-indigo-600 px-3 text-base font-semibold text-white transition hover:bg-indigo-500"
-                >
+                <Link href="/signup" className={`${btnPrimary} mt-1 w-full sm:min-h-11`}>
                   Бүртгүүлэх
                 </Link>
               </>

@@ -1,53 +1,24 @@
-import Link from "next/link";
-import type { Shipment, Trip } from "@/types";
-import { ShipmentCard, TripCard } from "@/components/ui";
-import { Hero, HowItWorks } from "./components";
+import type { ListingSummary } from "@/lib/listing";
+import { Hero, HowItWorks, LatestListings } from "./components";
 
-function SectionHeader({ title, href }: { title: string; href: string }) {
-  return (
-    <div className="mb-4 flex items-center justify-between gap-2">
-      <h2 className="text-xl font-bold text-slate-900">{title}</h2>
-      <Link href={href} className="text-sm font-semibold text-indigo-600 hover:underline">
-        Бүгдийг үзэх →
-      </Link>
-    </div>
-  );
-}
-
-export default function HomeView({ trips, shipments }: { trips: Trip[]; shipments: Shipment[] }) {
+export default function HomeView({
+  trips,
+  shipments,
+}: {
+  trips: ListingSummary[];
+  shipments: ListingSummary[];
+}) {
   return (
     <>
       <Hero />
       <HowItWorks />
 
       <section className="mx-auto w-full max-w-5xl px-4 py-12 md:py-16">
-        <SectionHeader title="Сүүлийн аялалууд" href="/trips" />
-        {trips.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
-            Одоогоор идэвхтэй аялал алга. Эхнийх нь та байгаарай! ✈️
-          </p>
-        ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {trips.map((trip) => (
-              <TripCard key={trip.id} trip={trip} />
-            ))}
-          </div>
-        )}
+        <LatestListings type="trip" listings={trips} />
       </section>
 
       <section className="mx-auto w-full max-w-5xl px-4 pb-12 md:pb-16">
-        <SectionHeader title="Сүүлийн ачаанууд" href="/shipments" />
-        {shipments.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
-            Одоогоор ачааны хүсэлт алга. Эхнийх нь та байгаарай! 📦
-          </p>
-        ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {shipments.map((shipment) => (
-              <ShipmentCard key={shipment.id} shipment={shipment} />
-            ))}
-          </div>
-        )}
+        <LatestListings type="shipment" listings={shipments} />
       </section>
     </>
   );

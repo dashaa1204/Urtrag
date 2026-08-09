@@ -12,7 +12,7 @@ export function NotificationBell({ userId, reviews }: { userId: string; reviews:
     <Dropdown
       label="Мэдэгдэл"
       panelCls="w-72"
-      triggerCls="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+      triggerCls="flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-400 active:bg-slate-200"
       trigger={<BellIcon />}
     >
       <p className="border-b border-slate-100 px-3 pb-2 pt-1 text-sm font-semibold text-slate-900">Мэдэгдэл</p>

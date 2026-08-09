@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { btnPrimary, btnSecondary } from "@/components/ui";
+import { btnLg, btnPrimary, btnSecondary } from "@/components/ui";
 
 export function Hero() {
   return (
@@ -14,10 +14,10 @@ export function Hero() {
           Facebook группээр хайх шаардлагагүй — зараа тавиад, мессежээр шууд тохиролцоорой.
         </p>
         <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
-          <Link href="/trips/new" className={btnPrimary}>
+          <Link href="/trips/new" className={`${btnPrimary} ${btnLg}`}>
             ✈️ Аялал зарлах
           </Link>
-          <Link href="/shipments/new" className={btnSecondary}>
+          <Link href="/shipments/new" className={`${btnSecondary} ${btnLg}`}>
             📦 Ачаа илгээх хүсэлт
           </Link>
         </div>

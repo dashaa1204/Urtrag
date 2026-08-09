@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PageContainer, PageHeader } from "@/components/ui";
 
 const LAST_UPDATED = "2026 оны 8 сарын 5";
 
@@ -71,11 +72,10 @@ const SECTIONS = [
 
 export default function DisclaimerView() {
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 py-10">
-      <h1 className="text-2xl font-bold text-slate-900">Хариуцлагын тайлбар</h1>
-      <p className="mt-1 text-sm text-slate-500">Сүүлд шинэчилсэн: {LAST_UPDATED}</p>
+    <PageContainer width="list">
+      <PageHeader title="Хариуцлагын тайлбар" description={`Сүүлд шинэчилсэн: ${LAST_UPDATED}`} />
 
-      <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
+      <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
         <p className="font-semibold">Товчхондоо:</p>
         <p className="mt-1">
           Замдаа бол зөвхөн танилцуулах платформ. Ачаа, төлбөр, гаалийн асуудлыг хэрэглэгчид өөрсдөө
@@ -103,6 +103,6 @@ export default function DisclaimerView() {
         </Link>{" "}
         холбогдоно уу.
       </p>
-    </div>
+    </PageContainer>
   );
 }

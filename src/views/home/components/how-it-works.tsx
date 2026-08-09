@@ -350,7 +350,7 @@ export function HowItWorks() {
 
           <Link
             href="/trips"
-            className="mt-7 inline-flex items-center rounded-lg bg-white px-4 py-2.5 text-sm font-semibold text-indigo-600 transition hover:bg-indigo-50 sm:mt-8"
+            className="mt-7 inline-flex min-h-11 select-none items-center justify-center gap-2 rounded-xl bg-white px-5 text-sm font-semibold text-indigo-600 shadow-lg shadow-indigo-950/30 transition duration-150 ease-out hover:-translate-y-px hover:bg-indigo-50 hover:shadow-xl hover:shadow-indigo-950/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white active:translate-y-0 active:bg-indigo-100 sm:mt-8 sm:min-h-10"
           >
             Аялалуудыг үзэх →
           </Link>

@@ -2,7 +2,8 @@
 
 import { useActionState } from "react";
 import { sendMessage } from "@/lib/actions";
-import { btnPrimary, FormError, inputCls } from "./form";
+import { FormError, inputCls } from "./form";
+import { SubmitButton } from "./fields";
 import type { ListingType } from "@/types";
 
 interface MessageFormProps {
@@ -30,9 +31,9 @@ export function MessageForm({ conversationId, listingType, listingId, placeholde
         className={inputCls}
         required
       />
-      <button type="submit" disabled={pending} className={`${btnPrimary} self-end`}>
-        {pending ? "Илгээж байна..." : "Илгээх"}
-      </button>
+      <SubmitButton pending={pending} pendingLabel="Илгээж байна..." className="self-end">
+        Илгээх
+      </SubmitButton>
     </form>
   );
 }

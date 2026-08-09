@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import { requestPasswordReset } from "@/lib/actions";
-import { btnPrimary, FormError, FormNotice, inputCls, labelCls } from "@/components/ui";
+import { FormError, FormNotice, SubmitButton, TextField } from "@/components/ui";
 
 export function ForgotPasswordForm() {
   const [state, action, pending] = useActionState(requestPasswordReset, undefined);
@@ -16,25 +16,19 @@ export function ForgotPasswordForm() {
     <form action={action} className="flex flex-col gap-4">
       <FormError message={state?.error} />
 
-      <div>
-        <label htmlFor="email" className={labelCls}>
-          Имэйл
-        </label>
-        <input
-          id="email"
-          name="email"
-          type="email"
-          autoComplete="email"
-          defaultValue={state?.values?.email}
-          placeholder="tanii@mail.com"
-          className={inputCls}
-          required
-        />
-      </div>
+      <TextField
+        label="Имэйл"
+        name="email"
+        type="email"
+        autoComplete="email"
+        defaultValue={state?.values?.email}
+        placeholder="tanii@mail.com"
+        required
+      />
 
-      <button type="submit" disabled={pending} className={btnPrimary}>
-        {pending ? "Илгээж байна..." : "Сэргээх холбоос илгээх"}
-      </button>
+      <SubmitButton pending={pending} pendingLabel="Илгээж байна...">
+        Сэргээх холбоос илгээх
+      </SubmitButton>
     </form>
   );
 }
