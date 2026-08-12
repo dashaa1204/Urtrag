@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { and, count, desc, eq, gte, inArray, isNull, ne, or, sql } from "drizzle-orm";
 import { db } from "./db";
 import { conversations, messages, profiles, reviews, shipments, trips } from "./db/schema";
@@ -5,7 +6,6 @@ import { formatDate, formatKg } from "./format";
 import type {
   Conversation,
   ConversationPreview,
-  Direction,
   ListingType,
   Message,
   Review,
@@ -24,7 +24,8 @@ function todayIso(): string {
 const tripFields = {
   id: trips.id,
   user_id: trips.userId,
-  direction: trips.direction,
+  from_country: trips.fromCountry,
+  to_country: trips.toCountry,
   from_city: trips.fromCity,
   to_city: trips.toCity,
   travel_date: trips.travelDate,
@@ -39,7 +40,8 @@ const tripFields = {
 const shipmentFields = {
   id: shipments.id,
   user_id: shipments.userId,
-  direction: shipments.direction,
+  from_country: shipments.fromCountry,
+  to_country: shipments.toCountry,
   from_city: shipments.fromCity,
   to_city: shipments.toCity,
   weight_kg: shipments.weightKg,
@@ -54,7 +56,13 @@ const shipmentFields = {
 
 // ---------- Аялал ----------
 
-export async function listTrips(filter: { direction?: Direction } = {}): Promise<Trip[]> {
+/** Хоёулаа сонголттой — зөвхөн "хаанаас" эсвэл зөвхөн "хаашаа"-гаар нь ч шүүнэ. */
+export interface RouteFilter {
+  fromCountry?: string;
+  toCountry?: string;
+}
+
+export async function listTrips(filter: RouteFilter = {}): Promise<Trip[]> {
   return db
     .select(tripFields)
     .from(trips)
@@ -63,7 +71,8 @@ export async function listTrips(filter: { direction?: Direction } = {}): Promise
       and(
         eq(trips.status, "active"),
         gte(trips.travelDate, todayIso()),
-        filter.direction ? eq(trips.direction, filter.direction) : undefined
+        filter.fromCountry ? eq(trips.fromCountry, filter.fromCountry) : undefined,
+        filter.toCountry ? eq(trips.toCountry, filter.toCountry) : undefined
       )
     )
     .orderBy(trips.travelDate);
@@ -79,7 +88,8 @@ export async function latestTrips(limit: number): Promise<Trip[]> {
     .limit(limit);
 }
 
-export async function getTrip(id: number): Promise<Trip | null> {
+/** Хуудас ба generateMetadata хоёулаа дууддаг тул нэг хүсэлтэд нэг л удаа гүйцэтгэнэ. */
+export const getTrip = cache(async (id: number): Promise<Trip | null> => {
   const [row] = await db
     .select(tripFields)
     .from(trips)
@@ -87,13 +97,14 @@ export async function getTrip(id: number): Promise<Trip | null> {
     .where(eq(trips.id, id))
     .limit(1);
   return row ?? null;
-}
+});
 
 export async function createTrip(input: {
   userId: UserId;
-  direction: Direction;
-  fromCity: string | null;
-  toCity: string | null;
+  fromCountry: string;
+  toCountry: string;
+  fromCity: string;
+  toCity: string;
   travelDate: string;
   availableKg: number;
   pricePerKg: number;
@@ -103,7 +114,8 @@ export async function createTrip(input: {
     .insert(trips)
     .values({
       userId: input.userId,
-      direction: input.direction,
+      fromCountry: input.fromCountry,
+      toCountry: input.toCountry,
       fromCity: input.fromCity,
       toCity: input.toCity,
       travelDate: input.travelDate,
@@ -128,9 +140,10 @@ export async function updateTrip(
   id: number,
   userId: UserId,
   input: {
-    direction: Direction;
-    fromCity: string | null;
-    toCity: string | null;
+    fromCountry: string;
+    toCountry: string;
+    fromCity: string;
+    toCity: string;
     travelDate: string;
     availableKg: number;
     pricePerKg: number;
@@ -140,7 +153,8 @@ export async function updateTrip(
   const rows = await db
     .update(trips)
     .set({
-      direction: input.direction,
+      fromCountry: input.fromCountry,
+      toCountry: input.toCountry,
       fromCity: input.fromCity,
       toCity: input.toCity,
       travelDate: input.travelDate,
@@ -155,12 +169,18 @@ export async function updateTrip(
 
 // ---------- Ачаа ----------
 
-export async function listShipments(filter: { direction?: Direction } = {}): Promise<Shipment[]> {
+export async function listShipments(filter: RouteFilter = {}): Promise<Shipment[]> {
   return db
     .select(shipmentFields)
     .from(shipments)
     .innerJoin(profiles, eq(profiles.id, shipments.userId))
-    .where(and(eq(shipments.status, "active"), filter.direction ? eq(shipments.direction, filter.direction) : undefined))
+    .where(
+      and(
+        eq(shipments.status, "active"),
+        filter.fromCountry ? eq(shipments.fromCountry, filter.fromCountry) : undefined,
+        filter.toCountry ? eq(shipments.toCountry, filter.toCountry) : undefined
+      )
+    )
     .orderBy(desc(shipments.createdAt));
 }
 
@@ -174,7 +194,7 @@ export async function latestShipments(limit: number): Promise<Shipment[]> {
     .limit(limit);
 }
 
-export async function getShipment(id: number): Promise<Shipment | null> {
+export const getShipment = cache(async (id: number): Promise<Shipment | null> => {
   const [row] = await db
     .select(shipmentFields)
     .from(shipments)
@@ -182,13 +202,14 @@ export async function getShipment(id: number): Promise<Shipment | null> {
     .where(eq(shipments.id, id))
     .limit(1);
   return row ?? null;
-}
+});
 
 export async function createShipment(input: {
   userId: UserId;
-  direction: Direction;
-  fromCity: string | null;
-  toCity: string | null;
+  fromCountry: string;
+  toCountry: string;
+  fromCity: string;
+  toCity: string;
   weightKg: number;
   readyDate: string | null;
   deadlineDate: string | null;
@@ -199,7 +220,8 @@ export async function createShipment(input: {
     .insert(shipments)
     .values({
       userId: input.userId,
-      direction: input.direction,
+      fromCountry: input.fromCountry,
+      toCountry: input.toCountry,
       fromCity: input.fromCity,
       toCity: input.toCity,
       weightKg: input.weightKg,
@@ -225,9 +247,10 @@ export async function updateShipment(
   id: number,
   userId: UserId,
   input: {
-    direction: Direction;
-    fromCity: string | null;
-    toCity: string | null;
+    fromCountry: string;
+    toCountry: string;
+    fromCity: string;
+    toCity: string;
     weightKg: number;
     readyDate: string | null;
     deadlineDate: string | null;
@@ -238,7 +261,8 @@ export async function updateShipment(
   const rows = await db
     .update(shipments)
     .set({
-      direction: input.direction,
+      fromCountry: input.fromCountry,
+      toCountry: input.toCountry,
       fromCity: input.fromCity,
       toCity: input.toCity,
       weightKg: input.weightKg,
@@ -567,14 +591,14 @@ export async function recentReviews(userId: UserId, limit: number): Promise<Revi
 
 // ---------- Хэрэглэгчийн профайл ----------
 
-export async function getUserProfile(id: UserId): Promise<UserProfile | null> {
+export const getUserProfile = cache(async (id: UserId): Promise<UserProfile | null> => {
   const [row] = await db
     .select({ id: profiles.id, name: profiles.name, created_at: profiles.createdAt })
     .from(profiles)
     .where(eq(profiles.id, id))
     .limit(1);
   return row ?? null;
-}
+});
 
 export async function userActiveTrips(userId: UserId): Promise<Trip[]> {
   return db

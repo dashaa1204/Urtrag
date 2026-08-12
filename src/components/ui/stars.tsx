@@ -6,7 +6,7 @@ export function Stars({ rating }: { rating: number }) {
   return (
     <span className="text-amber-500" aria-label={`${filled}/5 үнэлгээ`}>
       {"★".repeat(filled)}
-      <span className="text-slate-300">{"☆".repeat(5 - filled)}</span>
+      <span className="text-ink/20">{"☆".repeat(5 - filled)}</span>
     </span>
   );
 }
@@ -14,13 +14,13 @@ export function Stars({ rating }: { rating: number }) {
 /** Дундаж үнэлгээний товч харагдац: ★ 4.5 (3) */
 export function RatingSummary({ rating }: { rating: UserRating }) {
   if (rating.count === 0) {
-    return <span className="text-xs text-slate-400">Үнэлгээгүй</span>;
+    return <span className="text-xs text-ink-soft/70">Үнэлгээгүй</span>;
   }
   return (
     <span className="inline-flex items-center gap-1 text-sm">
       <span className="text-amber-500">★</span>
-      <span className="font-semibold text-slate-700">{rating.avg.toFixed(1)}</span>
-      <span className="text-slate-400">({rating.count})</span>
+      <span className="font-semibold text-ink">{rating.avg.toFixed(1)}</span>
+      <span className="text-ink-soft/70">({rating.count})</span>
     </span>
   );
 }

@@ -3,7 +3,7 @@ import { requireUser } from "@/lib/auth";
 import { ListingFormView } from "@/views/listings";
 import { TripForm } from "@/views/trips/components";
 
-export const metadata: Metadata = { title: "Аялал зарлах" };
+export const metadata: Metadata = { title: "Аялал зарлах", robots: { index: false, follow: false }, };
 
 export default async function TripNewPage() {
   await requireUser("/trips/new");

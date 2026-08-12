@@ -4,94 +4,87 @@
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 }
 
+/*
+  Эскиз дэвтрийн палитр. Өнгийг зурагнаас нь шууд түүсэн: цаас #f4f4ec,
+  бэх #16204d. Ингэснээр PNG эскизүүд интерфэйсийн нэг хэсэг мэт суух ба
+  "наасан зураг" шиг харагдахгүй.
+
+  Тайлбар: эдгээр нь Tailwind-ийн үндсэн палитр дээр НЭМЭГДЭНЭ — slate,
+  indigo зэрэг хуучин ангиуд хэвээр ажиллана.
+*/
+@theme {
+  --color-paper: #f4f4ec;
+  --color-card: #fbfbf6;
+  --color-ink: #16204d;
+  --color-ink-soft: #59628a;
+  /* Тамганы өнгө — үнэ, тэмдэглэгээнд. Цаасан дэвсгэр дээр дулаан аяыг барина. */
+  --color-stamp: #b45309;
+}
+
 body {
   font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 }
 
 /*
-  "Хэрхэн ажилладаг вэ?" хэсгийн дэвсгэр дээр нисэх онгоц.
-  offset-path нь SVG дэх маршрутын зурааст замтай ЯГ ИЖИЛ байх ёстой
-  — how-it-works.tsx доторх ROUTE_PATH-ыг харна уу.
+  Нүүр хуудасны эскизийн хөдөлгөөн (src/views/home/components/hero-sketch.tsx).
+
+  1. Бүтэн эскиз нь зүүнээс баруун тийш "зурагдаж" гарч ирнэ — маск нь эскиз
+     дээгүүр гүйх бэхний ирмэг болж ажиллана.
+  2. Хүн бүр хөл дээрээ найгана. Далайц нь ЗАРИМДАА жижиг байх ёстой: хөлний
+     доорх газрын зураас нь хүнтэй нэг холбоост тул тайрахад хамт салсан.
+     4-5px-ээс хэтрүүлбэл дэвсгэрийн зураас тасарсан нь мэдэгдэнэ.
 */
-.zd-plane {
-  offset-path: path("M 90 196 C 400 52, 800 52, 1110 132");
-  offset-rotate: auto;
-}
-
-/* Шөнийн тэнгэрийн анивчих од. Үргэлжлэх хугацаа/саатлыг од бүрт inline-аар өгнө. */
-@keyframes zd-twinkle {
-  0%,
-  100% {
-    opacity: 0.12;
-  }
-  50% {
-    opacity: 0.95;
-  }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .zd-star {
-    animation-name: zd-twinkle;
-    animation-timing-function: ease-in-out;
-    animation-iteration-count: infinite;
-  }
-}
-
-/*
-  Бөмбөрцгийн эргэлт. Эргэлдэх уртрагийн шугам нь дэлгэцэд R·cos(өнцөг)
-  өргөнтэй эллипс болж буудаг тул rx-ийг синусоид хэлбэрээр хэлбэлзүүлнэ.
-  cubic-bezier нь косинусын хурдыг ойролцоолно — тогтмол хурдтай эргэлт төрүүлнэ.
-*/
-@keyframes zd-spin {
-  0%,
-  100% {
-    rx: 199px;
-  }
-  50% {
-    rx: 0px;
-  }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .zd-meridian {
-    animation-name: zd-spin;
-    animation-duration: 40s;
-    animation-timing-function: cubic-bezier(0.37, 0, 0.63, 1);
-    animation-iteration-count: infinite;
-  }
-}
-
-@keyframes zd-fly {
+@keyframes hero-sketch-draw {
   from {
-    offset-distance: 0%;
+    -webkit-mask-position: 100% 0;
+    mask-position: 100% 0;
   }
   to {
-    offset-distance: 100%;
+    -webkit-mask-position: 0 0;
+    mask-position: 0 0;
   }
 }
 
-/*
-  Онгоцны ард үлдэх гэрэлт мөр. strokeDasharray="13 100" ба pathLength="100"
-  тул зурааст хэсгийн урд ирмэг нь (13 − dashoffset) байрлалд байна:
-  13 → −87 хооронд хэлбэлзэхэд ирмэг замын 0%-100%-ийг туулж, онгоцтой
-  яг синхрон явна. Хугацаа нь .zd-plane-тэй ижил байх ЁСТОЙ.
-*/
-@keyframes zd-trail {
-  from {
-    stroke-dashoffset: 13;
+.hero-sketch {
+  -webkit-mask-image: linear-gradient(100deg, #000 35%, rgb(0 0 0 / 0.4) 47%, transparent 58%);
+  mask-image: linear-gradient(100deg, #000 35%, rgb(0 0 0 / 0.4) 47%, transparent 58%);
+  -webkit-mask-size: 300% 100%;
+  mask-size: 300% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  animation: hero-sketch-draw 1.5s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+@keyframes hero-sketch-walk {
+  0%,
+  50%,
+  100% {
+    transform: translateY(0) rotate(0deg);
   }
-  to {
-    stroke-dashoffset: -87;
+  25% {
+    transform: translateY(-2px) rotate(0.7deg);
+  }
+  75% {
+    transform: translateY(-2px) rotate(-0.7deg);
   }
 }
 
-/* Хөдөлгөөн багасгах тохиргоотой хэрэглэгчид онгоц Вена дээр зогсоно. */
-@media (prefers-reduced-motion: no-preference) {
-  .zd-plane {
-    animation: zd-fly 14s linear infinite;
+.hero-sketch-walk {
+  /* Хөл дээрээ эргэнэ — төвөөрөө эргүүлбэл агаарт хөвж байгаа мэт болно. */
+  transform-origin: bottom center;
+  animation-name: hero-sketch-walk;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-sketch,
+  .hero-sketch-walk {
+    animation: none;
   }
 
-  .zd-trail {
-    animation: zd-trail 14s linear infinite;
+  .hero-sketch {
+    -webkit-mask-image: none;
+    mask-image: none;
   }
 }

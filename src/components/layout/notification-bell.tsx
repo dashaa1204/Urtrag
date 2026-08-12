@@ -12,10 +12,10 @@ export function NotificationBell({ userId, reviews }: { userId: string; reviews:
     <Dropdown
       label="Мэдэгдэл"
       panelCls="w-72"
-      triggerCls="flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-400 active:bg-slate-200"
+      triggerCls="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-ink-soft transition hover:bg-ink/5 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink active:bg-ink/10"
       trigger={<BellIcon />}
     >
-      <p className="border-b border-slate-100 px-3 pb-2 pt-1 text-sm font-semibold text-slate-900">Мэдэгдэл</p>
+      <p className="border-b border-ink/10 px-3 pb-2 pt-1 text-sm font-semibold text-ink">Мэдэгдэл</p>
 
       {reviews.length > 0 ? (
         <>
@@ -24,20 +24,20 @@ export function NotificationBell({ userId, reviews }: { userId: string; reviews:
               key={review.id}
               href={`/users/${userId}`}
               role="menuitem"
-              className="block rounded-lg px-3 py-2 transition hover:bg-slate-100"
+              className="block rounded-lg px-3 py-2 transition hover:bg-ink/5"
             >
-              <p className="text-sm text-slate-700">
-                <span className="font-medium text-slate-900">{review.reviewer_name}</span> танд үнэлгээ өглөө{" "}
+              <p className="text-sm text-ink-soft">
+                <span className="font-medium text-ink">{review.reviewer_name}</span> танд үнэлгээ өглөө{" "}
                 <Stars rating={review.rating} />
               </p>
-              <p className="mt-0.5 text-xs text-slate-400">
+              <p className="mt-0.5 text-xs text-ink-soft/70">
                 <LocalTime iso={review.created_at} dateOnly />
               </p>
             </Link>
           ))}
         </>
       ) : (
-        <p className="px-3 py-6 text-center text-sm text-slate-500">Одоогоор мэдэгдэл алга.</p>
+        <p className="px-3 py-6 text-center text-sm text-ink-soft">Одоогоор мэдэгдэл алга.</p>
       )}
     </Dropdown>
   );

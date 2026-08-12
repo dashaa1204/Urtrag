@@ -20,16 +20,16 @@ export function ListingContact({
   }
 
   if (listing.status === "closed") {
-    return <p className="text-sm text-slate-500">Энэ зар хаагдсан байна.</p>;
+    return <p className="text-sm text-ink-soft">Энэ зар хаагдсан байна.</p>;
   }
 
   if (!viewer) {
     return (
-      <p className="text-sm text-slate-600">
+      <p className="text-sm text-ink-soft">
         {listing.contactPrompt}{" "}
         <Link
           href={`/login?next=${listing.href}`}
-          className="font-semibold text-indigo-600 hover:underline"
+          className="font-semibold text-stamp hover:underline"
         >
           нэвтэрч орно уу
         </Link>
@@ -40,7 +40,7 @@ export function ListingContact({
 
   return (
     <>
-      <h2 className="mb-3 font-semibold text-slate-900">{listing.userName}-тай холбогдох</h2>
+      <h2 className="mb-3 font-semibold text-ink">{listing.userName}-тай холбогдох</h2>
       <MessageForm
         listingType={listing.type}
         listingId={listing.id}

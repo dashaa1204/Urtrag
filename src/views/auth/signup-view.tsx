@@ -11,7 +11,7 @@ export default function SignupView({ next }: { next?: string }) {
           Бүртгэлтэй юу?{" "}
           <Link
             href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"}
-            className="font-semibold text-indigo-600 hover:underline"
+            className="font-semibold text-stamp hover:underline"
           >
             Нэвтрэх
           </Link>

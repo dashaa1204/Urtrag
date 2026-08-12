@@ -6,11 +6,11 @@ export default function LoginView({ next, error }: { next?: string; error?: stri
   return (
     <AuthCard
       title="Нэвтрэх"
-      description="Замдаа платформд тавтай морил!"
+      description="Zamdaa платформд тавтай морил!"
       footer={
         <>
           <p>
-            <Link href="/forgot-password" className="hover:text-indigo-600 hover:underline">
+            <Link href="/forgot-password" className="hover:text-stamp hover:underline">
               Нууц үгээ мартсан уу?
             </Link>
           </p>
@@ -18,7 +18,7 @@ export default function LoginView({ next, error }: { next?: string; error?: stri
             Бүртгэлгүй юу?{" "}
             <Link
               href={next ? `/signup?next=${encodeURIComponent(next)}` : "/signup"}
-              className="font-semibold text-indigo-600 hover:underline"
+              className="font-semibold text-stamp hover:underline"
             >
               Бүртгүүлэх
             </Link>

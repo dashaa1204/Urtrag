@@ -10,7 +10,11 @@ import {
 import { shipmentSummary, tripSummary } from "@/lib/listing";
 import UserProfileView from "@/views/users/user-profile-view";
 
-export const metadata: Metadata = { title: "Хэрэглэгчийн профайл" };
+// Хувь хүний нэр, үнэлгээ агуулдаг тул хайлтын системд индексжүүлэхгүй
+export const metadata: Metadata = {
+  title: "Хэрэглэгчийн профайл",
+  robots: { index: false, follow: true },
+};
 
 // Хэрэглэгчийн id нь Supabase Auth-ийн uuid. Буруу хэлбэртэй бол Postgres
 // алдаа өгөхөөс өмнө 404 буцаана.

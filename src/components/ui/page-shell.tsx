@@ -37,8 +37,8 @@ export function PageHeader({
   return (
     <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">{title}</h1>
-        {description ? <p className="mt-1 text-sm text-slate-500">{description}</p> : null}
+        <h1 className="text-2xl font-bold text-ink">{title}</h1>
+        {description ? <p className="mt-1 text-sm text-ink-soft">{description}</p> : null}
       </div>
       {action}
     </div>
@@ -57,7 +57,7 @@ export function SectionHeader({
 }) {
   return (
     <div className={`flex flex-wrap items-center justify-between gap-2 ${size === "lg" ? "mb-4" : "mb-3"}`}>
-      <h2 className={size === "lg" ? "text-xl font-bold text-slate-900" : "font-semibold text-slate-900"}>
+      <h2 className={size === "lg" ? "text-xl font-bold text-ink" : "font-semibold text-ink"}>
         {title}
       </h2>
       {action}

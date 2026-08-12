@@ -8,7 +8,7 @@ export default function ForgotPasswordView() {
       description="Бүртгэлтэй имэйл хаягаа оруулна уу. Нууц үгээ шинэчлэх холбоос илгээнэ."
       footer={
         <p>
-          <Link href="/login" className="font-semibold text-indigo-600 hover:underline">
+          <Link href="/login" className="font-semibold text-stamp hover:underline">
             Нэвтрэх хуудас руу буцах
           </Link>
         </p>

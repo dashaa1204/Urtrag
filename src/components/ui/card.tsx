@@ -18,9 +18,9 @@ export function Card({
   children: ReactNode;
 }) {
   return (
-    <section className={`rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6 ${className}`}>
-      {title ? <Heading className="mb-1 text-xl font-bold text-slate-900">{title}</Heading> : null}
-      {description ? <p className="mb-6 text-sm text-slate-500">{description}</p> : null}
+    <section className={`rounded-xl border-2 border-ink/12 bg-card p-4 sm:p-6 ${className}`}>
+      {title ? <Heading className="mb-1 text-xl font-bold text-ink">{title}</Heading> : null}
+      {description ? <p className="mb-6 text-sm text-ink-soft">{description}</p> : null}
       {children}
     </section>
   );

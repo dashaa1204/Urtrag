@@ -17,7 +17,7 @@ export function AuthCard({
     <PageContainer width="form" roomy>
       <Card title={title} description={description}>
         {children}
-        {footer ? <div className="mt-4 space-y-4 text-center text-sm text-slate-500">{footer}</div> : null}
+        {footer ? <div className="mt-4 space-y-4 text-center text-sm text-ink-soft">{footer}</div> : null}
       </Card>
     </PageContainer>
   );

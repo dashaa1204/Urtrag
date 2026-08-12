@@ -59,7 +59,7 @@ export function Dropdown({ label, trigger, triggerCls, panelCls = "w-56", childr
       {open ? (
         <div
           role="menu"
-          className={`absolute right-0 top-full mt-2 ${panelCls} rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg`}
+          className={`absolute right-0 top-full mt-2 ${panelCls} rounded-lg border-2 border-ink/20 bg-card p-1.5`}
         >
           {children}
         </div>

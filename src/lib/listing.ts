@@ -3,8 +3,7 @@
 // карт, дэлгэрэнгүй хуудас, "Миний зар"-ын мөр гурав нь бүгд үүнийг уншина.
 
 import type { ListingStatus, ListingType, Shipment, Trip, UserId } from "@/types";
-import { DIRECTIONS } from "@/constant/directions";
-import { directionCities, formatDate, formatKg, formatPrice } from "@/lib/format";
+import { formatDate, formatKg, formatPrice, routeFlags, routeTitle } from "@/lib/format";
 
 export interface ListingStat {
   label: string;
@@ -26,10 +25,10 @@ export interface ListingSummary {
   /** Аялалын огноо өнгөрсөн эсэх (ачаанд үргэлж false). */
   expired: boolean;
   createdAt: Date;
-  /** "Вена → Улаанбаатар" */
+  /** "Vienna → Ulaanbaatar" */
   title: string;
-  /** "AT → MN" */
-  directionShort: string;
+  /** "🇦🇹 → 🇲🇳" */
+  flags: string;
   /** Дэлгэрэнгүй хуудасны толгойн жижиг тайлбар. */
   kicker: string;
   /** Картын мэдээллийн мөр. */
@@ -60,17 +59,18 @@ function shared(type: ListingType, listing: Trip | Shipment) {
     userName: listing.user_name,
     status: listing.status,
     createdAt: listing.created_at,
-    title: directionCities(listing.direction, listing.from_city, listing.to_city),
-    directionShort: DIRECTIONS[listing.direction].short,
+    title: routeTitle(listing),
+    flags: routeFlags(listing),
   };
 }
 
 /** Аялалын зарыг дэлгэцийн нэгдсэн хэлбэрт хөрвүүлнэ. */
 export function tripSummary(trip: Trip): ListingSummary {
+  const base = shared("trip", trip);
   return {
-    ...shared("trip", trip),
+    ...base,
     expired: trip.travel_date < new Date().toISOString().slice(0, 10),
-    kicker: `${DIRECTIONS[trip.direction].short} · Аялалын зар`,
+    kicker: `${base.flags} · Аялалын зар`,
     meta: [`🗓 ${formatDate(trip.travel_date)}`, `${formatKg(trip.available_kg)} сул`],
     price: `${formatPrice(trip.price_per_kg)}/кг`,
     body: trip.notes,
@@ -91,11 +91,12 @@ export function shipmentSummary(shipment: Shipment): ListingSummary {
     shipment.ready_date || shipment.deadline_date
       ? `${formatDate(shipment.ready_date) || "..."} — ${formatDate(shipment.deadline_date) || "..."}`
       : "Тохиролцоно";
+  const base = shared("shipment", shipment);
 
   return {
-    ...shared("shipment", shipment),
+    ...base,
     expired: false,
-    kicker: `${DIRECTIONS[shipment.direction].short} · Ачааны хүсэлт`,
+    kicker: `${base.flags} · Ачааны хүсэлт`,
     meta: [
       formatKg(shipment.weight_kg),
       ...(shipment.deadline_date ? [`🗓 ${formatDate(shipment.deadline_date)} дотор`] : []),

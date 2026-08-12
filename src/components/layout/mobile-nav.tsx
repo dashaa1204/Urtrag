@@ -8,7 +8,7 @@ import { logout } from "@/lib/actions";
 import { Avatar, btnPrimary, CountBadge } from "@/components/ui";
 
 const itemCls =
-  "flex min-h-11 items-center rounded-lg px-3 text-base font-medium text-slate-700 transition hover:bg-slate-100 hover:text-slate-900";
+  "flex min-h-11 items-center rounded-lg px-3 text-base font-medium text-ink-soft transition hover:bg-ink/5 hover:text-ink";
 
 export function MobileNav({ user, unread }: { user: SessionUser | null; unread: number }) {
   const [open, setOpen] = useState(false);
@@ -28,7 +28,7 @@ export function MobileNav({ user, unread }: { user: SessionUser | null; unread: 
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
         aria-label={open ? "Цэс хаах" : "Цэс нээх"}
-        className="relative -mr-2 flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-400 active:bg-slate-200"
+        className="relative -mr-2 flex h-11 w-11 cursor-pointer items-center justify-center rounded-lg text-ink-soft transition hover:bg-ink/5 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink active:bg-ink/10"
       >
         <span aria-hidden className="text-xl leading-none">
           {open ? "✕" : "☰"}
@@ -39,11 +39,11 @@ export function MobileNav({ user, unread }: { user: SessionUser | null; unread: 
       {open ? (
         <>
           <div
-            className="fixed inset-0 bg-slate-900/20"
+            className="fixed inset-0 bg-ink/25"
             onClick={() => setOpen(false)}
             aria-hidden
           />
-          <nav className="absolute inset-x-0 top-full flex flex-col gap-0.5 border-b border-slate-200 bg-white p-2 shadow-lg">
+          <nav className="absolute inset-x-0 top-full flex flex-col gap-0.5 border-b-2 border-ink/15 bg-card p-2">
             <Link href="/trips" className={itemCls}>
               Аялалууд
             </Link>
@@ -53,12 +53,12 @@ export function MobileNav({ user, unread }: { user: SessionUser | null; unread: 
 
             {user ? (
               <>
-                <div className="my-1 border-t border-slate-100" />
+                <div className="my-1 border-t border-ink/10" />
                 <Link href={`/users/${user.id}`} className={`${itemCls} gap-3`}>
                   <Avatar name={user.name} />
                   <span className="min-w-0">
                     <span className="block truncate">{user.name}</span>
-                    <span className="block truncate text-xs font-normal text-slate-500">Миний профайл</span>
+                    <span className="block truncate text-xs font-normal text-ink-soft">Миний профайл</span>
                   </span>
                 </Link>
                 <Link href="/messages" className={itemCls}>

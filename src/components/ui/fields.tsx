@@ -19,7 +19,7 @@ export function Field({
   return (
     <div>
       <label htmlFor={htmlFor} className={labelCls}>
-        {label} {optional ? <span className="font-normal text-slate-400">(заавал биш)</span> : null}
+        {label} {optional ? <span className="font-normal text-ink-soft/70">(заавал биш)</span> : null}
       </label>
       {children}
       <FieldError message={error} />

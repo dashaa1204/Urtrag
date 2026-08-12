@@ -1,19 +1,21 @@
 // text-base on mobile: iOS Safari zooms the page in when a focused input is under 16px.
 export const inputCls =
-  "w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-base text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 sm:text-sm";
-export const labelCls = "mb-1 block text-sm font-medium text-slate-700";
+  "w-full rounded-lg border-2 border-ink/15 bg-card px-3 py-2 text-base text-ink outline-none transition focus:border-ink/60 sm:text-sm";
+export const labelCls = "mb-1 block text-sm font-medium text-ink";
 
 /*
   Товчны суурь. Мобайл дээр 44px хүрэлтийн талбай, дэлгэц дээр 40px.
-  Hover дээр нэг пиксель дээшилж, дарахад буцаж суудаг — "дарагдсан" мэдрэмж өгнө.
-  Фокусыг ring биш outline-аар өгсөн нь товчны сүүдэртэй зөрчилдөхгүй.
+
+  Flat: градиент ба сүүдэр байхгүй — өнгө, шугам хоёроор л ялгана. Эскизүүд
+  тэгш хавтгай бэхээр зурагдсан тул хэмжээст сүүдэр хажууд нь зохимжгүй.
+  Hover дээр нэг пиксель дээшилж, дарахад буцаж суудаг мэдрэмжийг үлдээв.
 */
 const btnBase =
-  "inline-flex min-h-11 cursor-pointer select-none items-center justify-center gap-2 whitespace-nowrap rounded-xl px-4 text-sm font-semibold transition duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 hover:-translate-y-px active:translate-y-0 disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none sm:min-h-10";
+  "inline-flex min-h-11 cursor-pointer select-none items-center justify-center gap-2 whitespace-nowrap rounded-lg px-4 text-sm font-semibold transition duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 hover:-translate-y-px active:translate-y-0 disabled:pointer-events-none disabled:opacity-50 sm:min-h-10";
 
-export const btnPrimary = `${btnBase} bg-gradient-to-b from-indigo-500 to-indigo-600 text-white shadow-sm shadow-indigo-600/30 outline-indigo-600 hover:from-indigo-400 hover:to-indigo-500 hover:shadow-md hover:shadow-indigo-600/40 active:from-indigo-600 active:to-indigo-700 active:shadow-sm`;
-export const btnSecondary = `${btnBase} border border-slate-200 bg-white text-slate-700 shadow-xs outline-slate-400 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900 hover:shadow-sm active:bg-slate-100`;
-export const btnDanger = `${btnBase} border border-red-200 bg-white text-red-600 shadow-xs outline-red-500 hover:border-red-300 hover:bg-red-50 hover:text-red-700 hover:shadow-sm active:bg-red-100`;
+export const btnPrimary = `${btnBase} bg-ink text-paper outline-ink hover:bg-ink/88 active:bg-ink`;
+export const btnSecondary = `${btnBase} border-2 border-ink/20 text-ink outline-ink hover:border-ink/45 hover:bg-ink/5 active:bg-ink/10`;
+export const btnDanger = `${btnBase} border-2 border-red-300 text-red-700 outline-red-500 hover:border-red-400 hover:bg-red-50 active:bg-red-100`;
 
 /* Хэмжээний нэмэлт: аль ч variant-ийн ард залгаж бичнэ. */
 export const btnSm = "min-h-9 gap-1.5 rounded-lg px-3 sm:min-h-9";

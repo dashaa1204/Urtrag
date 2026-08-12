@@ -23,7 +23,7 @@ export function ReviewBox({
       <input type="hidden" name="conversation_id" value={conversationId} />
       <input type="hidden" name="rating" value={rating} />
 
-      <p className="text-sm text-slate-600">
+      <p className="text-sm text-ink-soft">
         {existing
           ? `Та ${otherName}-д үнэлгээ өгсөн. Дахин илгээвэл шинэчлэгдэнэ.`
           : `${otherName}-тай хийсэн ажлаа үнэлээрэй.`}

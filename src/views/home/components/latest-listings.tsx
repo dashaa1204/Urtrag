@@ -14,7 +14,7 @@ export function LatestListings({ type, listings }: { type: ListingType; listings
         size="lg"
         title={copy.homeTitle}
         action={
-          <Link href={copy.basePath} className="text-sm font-semibold text-indigo-600 hover:underline">
+          <Link href={copy.basePath} className="text-sm font-semibold text-stamp hover:underline">
             Бүгдийг үзэх →
           </Link>
         }

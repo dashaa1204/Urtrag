@@ -3,9 +3,9 @@ import type { ListingStatus } from "@/types";
 
 const toneCls = {
   green: "bg-emerald-50 text-emerald-700",
-  slate: "bg-slate-100 text-slate-500",
+  slate: "bg-ink/8 text-ink-soft",
   amber: "bg-amber-50 text-amber-700",
-  indigo: "bg-indigo-50 text-indigo-700",
+  indigo: "bg-ink/10 text-ink",
 };
 
 /** Богино төлөвийн шошго. */
@@ -25,7 +25,7 @@ export function StatusBadge({ status }: { status: ListingStatus }) {
 
 const countToneCls = {
   red: "bg-red-500",
-  indigo: "bg-indigo-600",
+  indigo: "bg-ink",
 };
 
 /**

@@ -20,8 +20,9 @@ import {
   updateTrip as updateTripRow,
   upsertReview,
 } from "./data";
-import { isDirection } from "@/constant/directions";
-import type { Direction, FormState, ListingType } from "@/types";
+import { findCity } from "@/constant/cities";
+import { SITE } from "@/constant/site";
+import type { FormState, ListingType } from "@/types";
 
 const EMAIL_RE = /^\S+@\S+\.\S+$/;
 
@@ -41,7 +42,7 @@ function safeNext(formData: FormData, fallback: string): string {
 }
 
 function appUrl(): string {
-  return (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
+  return SITE.url;
 }
 
 /** Supabase-ийн англи алдааг хэрэглэгчид ойлгомжтой монгол текст болгоно. */
@@ -183,10 +184,32 @@ export async function updatePassword(_prev: FormState | undefined, formData: For
 
 type Validated<T> = { ok: true; input: T } | { ok: false; state: FormState };
 
-interface TripInput {
-  direction: Direction;
-  fromCity: string | null;
-  toCity: string | null;
+interface RouteInput {
+  fromCountry: string;
+  toCountry: string;
+  fromCity: string;
+  toCity: string;
+}
+
+/**
+ * Хаанаас/хаашаа хосыг шалгана — аялал, ачаа хоёуланд нь ижил.
+ * Хотыг жагсаалтын жишиг нэр рүү нь нэгтгэж ("Вена" → "Vienna"), улсыг нь тэмдэглэнэ.
+ */
+function validateRoute(formData: FormData, fieldErrors: Record<string, string>): RouteInput | null {
+  const from = findCity(str(formData, "from_city"));
+  const to = findCity(str(formData, "to_city"));
+  if (!from) fieldErrors.from_city = "Жагсаалтаас хот сонгоно уу.";
+  if (!to) fieldErrors.to_city = "Жагсаалтаас хот сонгоно уу.";
+  if (!from || !to) return null;
+
+  if (from.name === to.name) {
+    fieldErrors.to_city = "Хаанаас, хаашаа хоёр өөр хот байх ёстой.";
+    return null;
+  }
+  return { fromCountry: from.code, toCountry: to.code, fromCity: from.name, toCity: to.name };
+}
+
+interface TripInput extends RouteInput {
   travelDate: string;
   availableKg: number;
   pricePerKg: number;
@@ -194,17 +217,13 @@ interface TripInput {
 }
 
 function validateTrip(formData: FormData): Validated<TripInput> {
-  const direction = str(formData, "direction");
-  const fromCity = str(formData, "from_city");
-  const toCity = str(formData, "to_city");
   const travelDate = str(formData, "travel_date");
   const availableKg = Number(str(formData, "available_kg"));
   const pricePerKg = Number(str(formData, "price_per_kg"));
   const notes = str(formData, "notes");
   const values = {
-    direction,
-    from_city: fromCity,
-    to_city: toCity,
+    from_city: str(formData, "from_city"),
+    to_city: str(formData, "to_city"),
     travel_date: travelDate,
     available_kg: str(formData, "available_kg"),
     price_per_kg: str(formData, "price_per_kg"),
@@ -212,7 +231,7 @@ function validateTrip(formData: FormData): Validated<TripInput> {
   };
 
   const fieldErrors: Record<string, string> = {};
-  if (!isDirection(direction)) fieldErrors.direction = "Чиглэлээ сонгоно уу.";
+  const route = validateRoute(formData, fieldErrors);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(travelDate)) {
     fieldErrors.travel_date = "Аялах огноогоо сонгоно уу.";
   } else if (travelDate < new Date().toISOString().slice(0, 10)) {
@@ -225,14 +244,12 @@ function validateTrip(formData: FormData): Validated<TripInput> {
     fieldErrors.price_per_kg = "1 кг-ийн үнээ (€) зөв оруулна уу.";
   }
   if (notes.length > 2000) fieldErrors.notes = "Тайлбар хэт урт байна.";
-  if (Object.keys(fieldErrors).length > 0) return { ok: false, state: { fieldErrors, values } };
+  if (!route || Object.keys(fieldErrors).length > 0) return { ok: false, state: { fieldErrors, values } };
 
   return {
     ok: true,
     input: {
-      direction: direction as Direction,
-      fromCity: fromCity || null,
-      toCity: toCity || null,
+      ...route,
       travelDate,
       availableKg,
       pricePerKg,
@@ -270,10 +287,7 @@ export async function updateTrip(_prev: FormState | undefined, formData: FormDat
 
 // ---------- Ачааны зар ----------
 
-interface ShipmentInput {
-  direction: Direction;
-  fromCity: string | null;
-  toCity: string | null;
+interface ShipmentInput extends RouteInput {
   weightKg: number;
   readyDate: string | null;
   deadlineDate: string | null;
@@ -282,9 +296,6 @@ interface ShipmentInput {
 }
 
 function validateShipment(formData: FormData): Validated<ShipmentInput> {
-  const direction = str(formData, "direction");
-  const fromCity = str(formData, "from_city");
-  const toCity = str(formData, "to_city");
   const weightKg = Number(str(formData, "weight_kg"));
   const readyDate = str(formData, "ready_date");
   const deadlineDate = str(formData, "deadline_date");
@@ -292,9 +303,8 @@ function validateShipment(formData: FormData): Validated<ShipmentInput> {
   const offerPriceRaw = str(formData, "offer_price");
   const offerPrice = offerPriceRaw ? Number(offerPriceRaw) : null;
   const values = {
-    direction,
-    from_city: fromCity,
-    to_city: toCity,
+    from_city: str(formData, "from_city"),
+    to_city: str(formData, "to_city"),
     weight_kg: str(formData, "weight_kg"),
     ready_date: readyDate,
     deadline_date: deadlineDate,
@@ -303,7 +313,7 @@ function validateShipment(formData: FormData): Validated<ShipmentInput> {
   };
 
   const fieldErrors: Record<string, string> = {};
-  if (!isDirection(direction)) fieldErrors.direction = "Чиглэлээ сонгоно уу.";
+  const route = validateRoute(formData, fieldErrors);
   if (!Number.isFinite(weightKg) || weightKg <= 0 || weightKg > 500) {
     fieldErrors.weight_kg = "Ачааны жингээ (кг) зөв оруулна уу.";
   }
@@ -317,14 +327,12 @@ function validateShipment(formData: FormData): Validated<ShipmentInput> {
   if (offerPrice !== null && (!Number.isFinite(offerPrice) || offerPrice <= 0 || offerPrice > 1000)) {
     fieldErrors.offer_price = "Санал болгох үнээ (€/кг) зөв оруулна уу.";
   }
-  if (Object.keys(fieldErrors).length > 0) return { ok: false, state: { fieldErrors, values } };
+  if (!route || Object.keys(fieldErrors).length > 0) return { ok: false, state: { fieldErrors, values } };
 
   return {
     ok: true,
     input: {
-      direction: direction as Direction,
-      fromCity: fromCity || null,
-      toCity: toCity || null,
+      ...route,
       weightKg,
       readyDate: readyDate || null,
       deadlineDate: deadlineDate || null,

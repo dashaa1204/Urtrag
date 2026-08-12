@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { createTrip, updateTrip } from "@/lib/actions";
 import { FieldRow, FormError, SubmitButton, TextAreaField, TextField } from "@/components/ui";
-import { CityFields, DirectionField } from "@/views/listings/components";
+import { RouteFields } from "@/views/listings/components";
 import { LISTING_COPY } from "@/constant/listings";
 import type { Trip } from "@/types";
 
@@ -19,14 +19,11 @@ export function TripForm({ trip }: { trip?: Trip }) {
 
       <FormError message={state?.error} />
 
-      <DirectionField
-        defaultValue={values?.direction ?? trip?.direction ?? "at-mn"}
-        error={errors?.direction}
-      />
-
-      <CityFields
+      <RouteFields
         from={values?.from_city ?? trip?.from_city ?? ""}
         to={values?.to_city ?? trip?.to_city ?? ""}
+        fromError={errors?.from_city}
+        toError={errors?.to_city}
       />
 
       <TextField

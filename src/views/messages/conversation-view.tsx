@@ -28,10 +28,10 @@ export default function ConversationView({
     <PageContainer width="reading">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <div>
-          <Link href="/messages" className="text-sm text-slate-500 hover:text-slate-700">
+          <Link href="/messages" className="text-sm text-ink-soft hover:text-ink">
             ← Бүх мессеж
           </Link>
-          <h1 className="mt-1 text-xl font-bold text-slate-900">{otherName}</h1>
+          <h1 className="mt-1 text-xl font-bold text-ink">{otherName}</h1>
         </div>
         <Link href={listingHref} className={`${btnSecondary} ${btnSm} max-w-full`}>
           <span className="min-w-0 truncate">{listingTitle} →</span>
@@ -49,14 +49,14 @@ export default function ConversationView({
           ))}
         </div>
 
-        <div className="mt-4 border-t border-slate-100 pt-4">
+        <div className="mt-4 border-t border-ink/10 pt-4">
           <MessageForm conversationId={conversation.id} placeholder="Хариу бичих..." />
         </div>
       </Card>
 
       {canReview ? (
         <Card className="mt-6">
-          <h2 className="mb-3 font-semibold text-slate-900">Үнэлгээ</h2>
+          <h2 className="mb-3 font-semibold text-ink">Үнэлгээ</h2>
           <ReviewBox conversationId={conversation.id} otherName={otherName} existing={ownReview} />
         </Card>
       ) : null}

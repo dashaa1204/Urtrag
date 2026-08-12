@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { createShipment, updateShipment } from "@/lib/actions";
 import { FieldRow, FormError, SubmitButton, TextAreaField, TextField } from "@/components/ui";
-import { CityFields, DirectionField } from "@/views/listings/components";
+import { RouteFields } from "@/views/listings/components";
 import { LISTING_COPY } from "@/constant/listings";
 import type { Shipment } from "@/types";
 
@@ -19,14 +19,11 @@ export function ShipmentForm({ shipment }: { shipment?: Shipment }) {
 
       <FormError message={state?.error} />
 
-      <DirectionField
-        defaultValue={values?.direction ?? shipment?.direction ?? "at-mn"}
-        error={errors?.direction}
-      />
-
-      <CityFields
+      <RouteFields
         from={values?.from_city ?? shipment?.from_city ?? ""}
         to={values?.to_city ?? shipment?.to_city ?? ""}
+        fromError={errors?.from_city}
+        toError={errors?.to_city}
       />
 
       <TextField

@@ -1,15 +1,29 @@
 import type { Metadata } from "next";
 import { listTrips } from "@/lib/data";
 import { tripSummary } from "@/lib/listing";
-import { isDirection } from "@/constant/directions";
+import { isCountryCode } from "@/constant/cities";
 import { ListingsView } from "@/views/listings";
 
-export const metadata: Metadata = { title: "Аялалууд" };
+export const metadata: Metadata = {
+  title: "Аялалууд — ачаа авч явах боломжтой аялагчид",
+  description:
+    "Ачаа авч явахад бэлэн аялагчдын зар. Хот, улсаараа шүүж, тохирох хүнтэйгээ мессежээр шууд холбогдоорой.",
+  // Шүүлтүүр (?from=&to=) давхардсан хуудас үүсгэдэг тул үндсэн зам руу нэгтгэнэ
+  alternates: { canonical: "/trips" },
+};
 
 export default async function TripsPage({ searchParams }: PageProps<"/trips">) {
-  const { direction } = await searchParams;
-  const filter = isDirection(direction) ? direction : undefined;
-  const trips = await listTrips({ direction: filter });
+  const { from, to } = await searchParams;
+  const fromCountry = isCountryCode(from) ? from : undefined;
+  const toCountry = isCountryCode(to) ? to : undefined;
+  const trips = await listTrips({ fromCountry, toCountry });
 
-  return <ListingsView type="trip" listings={trips.map(tripSummary)} direction={filter} />;
+  return (
+    <ListingsView
+      type="trip"
+      listings={trips.map(tripSummary)}
+      fromCountry={fromCountry}
+      toCountry={toCountry}
+    />
+  );
 }

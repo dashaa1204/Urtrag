@@ -5,7 +5,7 @@ import { getTrip } from "@/lib/data";
 import { ListingFormView } from "@/views/listings";
 import { TripForm } from "@/views/trips/components";
 
-export const metadata: Metadata = { title: "Аялалын зар засах" };
+export const metadata: Metadata = { title: "Аялалын зар засах", robots: { index: false, follow: false }, };
 
 export default async function TripEditPage({ params }: PageProps<"/trips/[id]/edit">) {
   const { id } = await params;

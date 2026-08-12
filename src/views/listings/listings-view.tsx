@@ -1,25 +1,27 @@
 import Link from "next/link";
-import type { Direction, ListingType } from "@/types";
+import type { ListingType } from "@/types";
 import type { ListingSummary } from "@/lib/listing";
 import { LISTING_COPY } from "@/constant/listings";
 import {
   btnPrimary,
-  DirectionFilter,
   EmptyState,
   ListingGrid,
   PageContainer,
   PageHeader,
+  RouteFilter,
 } from "@/components/ui";
 
 /** /trips ба /shipments хоёрын хуваалцсан жагсаалтын хуудас. */
 export default function ListingsView({
   type,
   listings,
-  direction,
+  fromCountry,
+  toCountry,
 }: {
   type: ListingType;
   listings: ListingSummary[];
-  direction?: Direction;
+  fromCountry?: string;
+  toCountry?: string;
 }) {
   const copy = LISTING_COPY[type];
 
@@ -36,7 +38,7 @@ export default function ListingsView({
       />
 
       <div className="mb-6">
-        <DirectionFilter current={direction} basePath={copy.basePath} />
+        <RouteFilter basePath={copy.basePath} fromCountry={fromCountry} toCountry={toCountry} />
       </div>
 
       {listings.length === 0 ? (

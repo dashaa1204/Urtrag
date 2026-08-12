@@ -24,23 +24,23 @@ export default function InboxView({ conversations }: { conversations: Conversati
                 <div className="flex items-center justify-between gap-2">
                   <p
                     className={`truncate text-sm ${
-                      conversation.unread > 0 ? "font-bold text-slate-900" : "font-medium text-slate-700"
+                      conversation.unread > 0 ? "font-bold text-ink" : "font-medium text-ink"
                     }`}
                   >
                     {conversation.other_name}
-                    <span className="ml-2 text-xs font-normal text-slate-400">
+                    <span className="ml-2 text-xs font-normal text-ink-soft/70">
                       {conversation.listing_title}
                     </span>
                   </p>
                   {conversation.last_at ? (
-                    <span className="shrink-0 text-xs text-slate-400">
+                    <span className="shrink-0 text-xs text-ink-soft/70">
                       <LocalTime iso={conversation.last_at} />
                     </span>
                   ) : null}
                 </div>
                 <p
                   className={`truncate text-sm ${
-                    conversation.unread > 0 ? "font-semibold text-slate-800" : "text-slate-500"
+                    conversation.unread > 0 ? "font-semibold text-ink" : "text-ink-soft"
                   }`}
                 >
                   {conversation.last_body ?? ""}

@@ -27,8 +27,8 @@ export default function UserProfileView({ profile, rating, reviews, trips, shipm
         <div className="flex items-center gap-4">
           <Avatar name={profile.name} size="lg" />
           <div className="min-w-0">
-            <h1 className="break-words text-xl font-bold text-slate-900">{profile.name}</h1>
-            <p className="mt-0.5 flex flex-wrap items-center gap-2 text-sm text-slate-500">
+            <h1 className="break-words text-xl font-bold text-ink">{profile.name}</h1>
+            <p className="mt-0.5 flex flex-wrap items-center gap-2 text-sm text-ink-soft">
               <RatingSummary rating={rating} />
               <span>· Гишүүн болсон: {formatDate(profile.created_at)}</span>
             </p>

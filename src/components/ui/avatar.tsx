@@ -15,7 +15,7 @@ export function Avatar({ name, size = "md", className = "" }: AvatarProps) {
   return (
     <span
       aria-hidden
-      className={`flex ${sizeCls[size]} shrink-0 items-center justify-center rounded-full bg-indigo-100 font-bold text-indigo-600 ${className}`}
+      className={`flex ${sizeCls[size]} shrink-0 items-center justify-center rounded-full bg-ink/10 font-bold text-ink ${className}`}
     >
       {name.trim().charAt(0).toUpperCase() || "?"}
     </span>

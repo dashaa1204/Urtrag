@@ -15,6 +15,20 @@
       "when": 1786002119414,
       "tag": "0001_supabase_auth",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786257356672,
+      "tag": "0002_route_countries",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1786257365939,
+      "tag": "0003_drop_direction",
+      "breakpoints": true
     }
   ]
 }

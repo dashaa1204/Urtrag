@@ -13,7 +13,6 @@ import {
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
-export const directionEnum = pgEnum("direction", ["at-mn", "mn-at"]);
 export const listingTypeEnum = pgEnum("listing_type", ["trip", "shipment"]);
 export const listingStatusEnum = pgEnum("listing_status", ["active", "closed"]);
 
@@ -36,7 +35,10 @@ export const trips = pgTable(
     userId: uuid("user_id")
       .notNull()
       .references(() => profiles.id, { onDelete: "cascade" }),
-    direction: directionEnum("direction").notNull(),
+    // Хот нь жагсаалтын англи нэр, улс нь ISO 3166-1 alpha-2 ("AT", "MN").
+    // Чиглэлийг тусад нь хадгалахгүй — хот/улсын хосоос гарна.
+    fromCountry: text("from_country").notNull(),
+    toCountry: text("to_country").notNull(),
     fromCity: text("from_city"),
     toCity: text("to_city"),
     travelDate: date("travel_date", { mode: "string" }).notNull(),
@@ -48,6 +50,7 @@ export const trips = pgTable(
   },
   (t) => [
     index("idx_trips_status_date").on(t.status, t.travelDate),
+    index("idx_trips_route").on(t.fromCountry, t.toCountry),
     index("idx_trips_user").on(t.userId),
     check("trips_available_kg_positive", sql`${t.availableKg} > 0`),
     check("trips_price_per_kg_positive", sql`${t.pricePerKg} > 0`),
@@ -61,7 +64,8 @@ export const shipments = pgTable(
     userId: uuid("user_id")
       .notNull()
       .references(() => profiles.id, { onDelete: "cascade" }),
-    direction: directionEnum("direction").notNull(),
+    fromCountry: text("from_country").notNull(),
+    toCountry: text("to_country").notNull(),
     fromCity: text("from_city"),
     toCity: text("to_city"),
     weightKg: doublePrecision("weight_kg").notNull(),
@@ -74,6 +78,7 @@ export const shipments = pgTable(
   },
   (t) => [
     index("idx_shipments_status_created").on(t.status, t.createdAt),
+    index("idx_shipments_route").on(t.fromCountry, t.toCountry),
     index("idx_shipments_user").on(t.userId),
     check("shipments_weight_kg_positive", sql`${t.weightKg} > 0`),
   ]

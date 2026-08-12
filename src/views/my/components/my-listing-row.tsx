@@ -10,8 +10,8 @@ export function MyListingRow({ listing }: { listing: ListingSummary }) {
   return (
     <PanelRow className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
       <Link href={listing.href} className="min-w-0 hover:underline sm:flex-1">
-        <p className="truncate text-sm font-medium text-slate-900">{listing.title}</p>
-        <p className="truncate text-xs text-slate-500">{meta}</p>
+        <p className="truncate text-sm font-medium text-ink">{listing.title}</p>
+        <p className="truncate text-xs text-ink-soft">{meta}</p>
       </Link>
 
       <div className="flex flex-wrap items-center gap-2 sm:shrink-0">

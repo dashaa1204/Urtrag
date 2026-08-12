@@ -14,7 +14,7 @@ import {
 import { formatDate, formatKg } from "@/lib/format";
 import ConversationView from "@/views/messages/conversation-view";
 
-export const metadata: Metadata = { title: "Харилцан яриа" };
+export const metadata: Metadata = { title: "Харилцан яриа", robots: { index: false, follow: false }, };
 
 export default async function ConversationPage({ params }: PageProps<"/messages/[id]">) {
   const { id } = await params;

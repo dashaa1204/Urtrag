@@ -1,15 +1,28 @@
 import type { Metadata } from "next";
 import { listShipments } from "@/lib/data";
 import { shipmentSummary } from "@/lib/listing";
-import { isDirection } from "@/constant/directions";
+import { isCountryCode } from "@/constant/cities";
 import { ListingsView } from "@/views/listings";
 
-export const metadata: Metadata = { title: "Ачаанууд" };
+export const metadata: Metadata = {
+  title: "Ачаанууд — илгээхээр хүлээгдэж буй хүсэлтүүд",
+  description:
+    "Хүргүүлэхээр хүлээж буй ачааны хүсэлтүүд. Аялж байгаа бол чиглэлээрээ шүүж, сул жингээ ашиглаарай.",
+  alternates: { canonical: "/shipments" },
+};
 
 export default async function ShipmentsPage({ searchParams }: PageProps<"/shipments">) {
-  const { direction } = await searchParams;
-  const filter = isDirection(direction) ? direction : undefined;
-  const shipments = await listShipments({ direction: filter });
+  const { from, to } = await searchParams;
+  const fromCountry = isCountryCode(from) ? from : undefined;
+  const toCountry = isCountryCode(to) ? to : undefined;
+  const shipments = await listShipments({ fromCountry, toCountry });
 
-  return <ListingsView type="shipment" listings={shipments.map(shipmentSummary)} direction={filter} />;
+  return (
+    <ListingsView
+      type="shipment"
+      listings={shipments.map(shipmentSummary)}
+      fromCountry={fromCountry}
+      toCountry={toCountry}
+    />
+  );
 }

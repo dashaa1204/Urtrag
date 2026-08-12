@@ -8,7 +8,7 @@ import { ListingActionForm } from "./listing-action-form";
 export function OwnerActions({ listing }: { listing: ListingSummary }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
-      <p className="text-sm text-slate-600">{listing.ownerHint}</p>
+      <p className="text-sm text-ink-soft">{listing.ownerHint}</p>
       <div className="flex flex-wrap gap-2">
         <Link href={listing.editHref} className={btnSecondary}>
           Засах

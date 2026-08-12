@@ -58,17 +58,17 @@ export function SignupForm({ next }: { next?: string }) {
       />
 
       <div>
-        <label htmlFor="terms" className="flex cursor-pointer items-start gap-2 text-sm text-slate-600">
+        <label htmlFor="terms" className="flex cursor-pointer items-start gap-2 text-sm text-ink-soft">
           <input
             id="terms"
             name="terms"
             type="checkbox"
             defaultChecked={state?.values?.terms === "on"}
-            className="mt-0.5 size-4 shrink-0 cursor-pointer rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+            className="mt-0.5 size-4 shrink-0 cursor-pointer rounded border-ink/25 text-ink focus:ring-ink"
           />
           <span>
             Би{" "}
-            <Link href="/disclaimer" target="_blank" className="font-semibold text-indigo-600 hover:underline">
+            <Link href="/disclaimer" target="_blank" className="font-semibold text-stamp hover:underline">
               хариуцлагын тайлбарыг
             </Link>{" "}
             уншиж танилцан, хүлээн зөвшөөрч байна.

@@ -5,7 +5,7 @@ import { getShipment } from "@/lib/data";
 import { ListingFormView } from "@/views/listings";
 import { ShipmentForm } from "@/views/shipments/components";
 
-export const metadata: Metadata = { title: "Ачааны хүсэлт засах" };
+export const metadata: Metadata = { title: "Ачааны хүсэлт засах", robots: { index: false, follow: false }, };
 
 export default async function ShipmentEditPage({ params }: PageProps<"/shipments/[id]/edit">) {
   const { id } = await params;

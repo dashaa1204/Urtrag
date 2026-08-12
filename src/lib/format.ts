@@ -1,10 +1,27 @@
 // Клиент, сервер хоёуланд нь ашиглагдах форматын туслахууд (серверийн хамааралгүй).
 
-import type { Direction } from "@/types";
+import { countryFlag, countryName } from "@/constant/cities";
 
-export function directionCities(direction: Direction, fromCity?: string | null, toCity?: string | null): string {
-  const defaults = direction === "at-mn" ? ["Австри", "Монгол"] : ["Монгол", "Австри"];
-  return `${fromCity || defaults[0]} → ${toCity || defaults[1]}`;
+/** Зар бүр дээр байдаг чиглэлийн хэсэг. */
+export interface Route {
+  from_country: string;
+  to_country: string;
+  from_city: string | null;
+  to_city: string | null;
+}
+
+function place(city: string | null, code: string): string {
+  return city || countryName(code);
+}
+
+/** "Vienna → Ulaanbaatar" — хот хоосон хуучин зарт улсын нэр гарна. */
+export function routeTitle(route: Route): string {
+  return `${place(route.from_city, route.from_country)} → ${place(route.to_city, route.to_country)}`;
+}
+
+/** "🇦🇹 → 🇲🇳" */
+export function routeFlags(route: Route): string {
+  return `${countryFlag(route.from_country)} → ${countryFlag(route.to_country)}`;
 }
 
 /** "2026-08-15" эсвэл Date → "2026.08.15" */

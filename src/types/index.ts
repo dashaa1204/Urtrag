@@ -1,4 +1,3 @@
-export type Direction = "at-mn" | "mn-at";
 export type ListingType = "trip" | "shipment";
 export type ListingStatus = "active" | "closed";
 
@@ -15,7 +14,9 @@ export interface SessionUser {
 export interface Trip {
   id: number;
   user_id: UserId;
-  direction: Direction;
+  /** ISO 3166-1 alpha-2 — "AT", "MN" */
+  from_country: string;
+  to_country: string;
   from_city: string | null;
   to_city: string | null;
   travel_date: string;
@@ -30,7 +31,9 @@ export interface Trip {
 export interface Shipment {
   id: number;
   user_id: UserId;
-  direction: Direction;
+  /** ISO 3166-1 alpha-2 — "AT", "MN" */
+  from_country: string;
+  to_country: string;
   from_city: string | null;
   to_city: string | null;
   weight_kg: number;

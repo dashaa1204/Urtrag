@@ -6,9 +6,9 @@ import { LocalTime, RatingSummary } from "@/components/ui";
 /** Зарын эзний нэр, үнэлгээ, нийтэлсэн огноо. */
 export function ListingOwner({ listing, rating }: { listing: ListingSummary; rating: UserRating }) {
   return (
-    <p className="mt-6 flex flex-wrap items-center gap-2 text-sm text-slate-500">
+    <p className="mt-6 flex flex-wrap items-center gap-2 text-sm text-ink-soft">
       Зарын эзэн:{" "}
-      <Link href={`/users/${listing.userId}`} className="font-medium text-indigo-600 hover:underline">
+      <Link href={`/users/${listing.userId}`} className="font-medium text-stamp hover:underline">
         {listing.userName}
       </Link>
       <RatingSummary rating={rating} />

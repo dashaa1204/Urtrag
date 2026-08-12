@@ -4,7 +4,7 @@ import { myShipments, myTrips } from "@/lib/data";
 import { shipmentSummary, tripSummary } from "@/lib/listing";
 import MyListingsView from "@/views/my/my-listings-view";
 
-export const metadata: Metadata = { title: "Миний зарууд" };
+export const metadata: Metadata = { title: "Миний зарууд", robots: { index: false, follow: false }, };
 
 export default async function MyPage() {
   const user = await requireUser("/my");
