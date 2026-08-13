@@ -29,6 +29,27 @@
       "when": 1786257365939,
       "tag": "0003_drop_direction",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1786607237225,
+      "tag": "0004_profile_details",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1786608332790,
+      "tag": "0005_identity_verification",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1786609927970,
+      "tag": "0006_avatar",
+      "breakpoints": true
     }
   ]
 }

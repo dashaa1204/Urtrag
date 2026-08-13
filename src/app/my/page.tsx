@@ -1,14 +1,34 @@
 import type { Metadata } from "next";
 import { requireUser } from "@/lib/auth";
-import { myShipments, myTrips } from "@/lib/data";
+import { getUserRating, getVerification, listUserReviews, myShipments, myTrips } from "@/lib/data";
 import { shipmentSummary, tripSummary } from "@/lib/listing";
-import MyListingsView from "@/views/my/my-listings-view";
+import { parseFilter, parseTab } from "@/constant/dashboard";
+import DashboardView from "@/views/my/dashboard-view";
 
-export const metadata: Metadata = { title: "Миний зарууд", robots: { index: false, follow: false }, };
+export const metadata: Metadata = { title: "Миний хуудас", robots: { index: false, follow: false } };
 
-export default async function MyPage() {
+export default async function MyPage({ searchParams }: PageProps<"/my">) {
   const user = await requireUser("/my");
-  const [trips, shipments] = await Promise.all([myTrips(user.id), myShipments(user.id)]);
+  const { tab, status } = await searchParams;
 
-  return <MyListingsView trips={trips.map(tripSummary)} shipments={shipments.map(shipmentSummary)} />;
+  const [trips, shipments, rating, reviews, verification] = await Promise.all([
+    myTrips(user.id),
+    myShipments(user.id),
+    getUserRating(user.id),
+    listUserReviews(user.id),
+    getVerification(user.id),
+  ]);
+
+  return (
+    <DashboardView
+      user={user}
+      rating={rating}
+      reviews={reviews}
+      trips={trips.map(tripSummary)}
+      shipments={shipments.map(shipmentSummary)}
+      identityVerified={verification?.status === "approved"}
+      tab={parseTab(tab)}
+      filter={parseFilter(status)}
+    />
+  );
 }

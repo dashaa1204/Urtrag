@@ -5,6 +5,8 @@ interface FieldShell {
   label: string;
   /** Гарчгийн ард "(заавал биш)" гэж бичнэ. */
   optional?: boolean;
+  /** Талбарын доор гарах жижиг тайлбар — хаана харагдахыг мэдэгдэхэд. */
+  hint?: string;
   error?: string;
 }
 
@@ -13,6 +15,7 @@ export function Field({
   label,
   htmlFor,
   optional,
+  hint,
   error,
   children,
 }: FieldShell & { htmlFor?: string; children: ReactNode }) {
@@ -22,6 +25,7 @@ export function Field({
         {label} {optional ? <span className="font-normal text-ink-soft/70">(заавал биш)</span> : null}
       </label>
       {children}
+      {hint ? <p className="mt-1 text-xs text-ink-soft/70">{hint}</p> : null}
       <FieldError message={error} />
     </div>
   );
@@ -34,10 +38,10 @@ export function FieldRow({ children }: { children: ReactNode }) {
 
 type InputProps = FieldShell & Omit<ComponentProps<"input">, "className">;
 
-export function TextField({ label, optional, error, id, name, ...props }: InputProps) {
+export function TextField({ label, optional, hint, error, id, name, ...props }: InputProps) {
   const fieldId = id ?? name;
   return (
-    <Field label={label} htmlFor={fieldId} optional={optional} error={error}>
+    <Field label={label} htmlFor={fieldId} optional={optional} hint={hint} error={error}>
       <input id={fieldId} name={name} className={inputCls} {...props} />
     </Field>
   );
@@ -45,10 +49,10 @@ export function TextField({ label, optional, error, id, name, ...props }: InputP
 
 type TextAreaProps = FieldShell & Omit<ComponentProps<"textarea">, "className">;
 
-export function TextAreaField({ label, optional, error, id, name, ...props }: TextAreaProps) {
+export function TextAreaField({ label, optional, hint, error, id, name, ...props }: TextAreaProps) {
   const fieldId = id ?? name;
   return (
-    <Field label={label} htmlFor={fieldId} optional={optional} error={error}>
+    <Field label={label} htmlFor={fieldId} optional={optional} hint={hint} error={error}>
       <textarea id={fieldId} name={name} className={inputCls} {...props} />
     </Field>
   );
@@ -56,10 +60,10 @@ export function TextAreaField({ label, optional, error, id, name, ...props }: Te
 
 type SelectProps = FieldShell & Omit<ComponentProps<"select">, "className">;
 
-export function SelectField({ label, optional, error, id, name, children, ...props }: SelectProps) {
+export function SelectField({ label, optional, hint, error, id, name, children, ...props }: SelectProps) {
   const fieldId = id ?? name;
   return (
-    <Field label={label} htmlFor={fieldId} optional={optional} error={error}>
+    <Field label={label} htmlFor={fieldId} optional={optional} hint={hint} error={error}>
       <select id={fieldId} name={name} className={inputCls} {...props}>
         {children}
       </select>

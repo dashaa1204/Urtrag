@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Review } from "@/types";
+import { dashboardHref } from "@/constant/dashboard";
 import { BellIcon, LocalTime, Stars } from "@/components/ui";
 import { Dropdown } from "./dropdown";
 
@@ -7,7 +8,7 @@ import { Dropdown } from "./dropdown";
  * Одоогоор мэдэгдлийн эх сурвалж нь хүлээж авсан үнэлгээ.
  * "Уншсан" төлөв хадгалдаггүй тул тоолуур харуулахгүй.
  */
-export function NotificationBell({ userId, reviews }: { userId: string; reviews: Review[] }) {
+export function NotificationBell({ reviews }: { reviews: Review[] }) {
   return (
     <Dropdown
       label="Мэдэгдэл"
@@ -22,7 +23,7 @@ export function NotificationBell({ userId, reviews }: { userId: string; reviews:
           {reviews.map((review) => (
             <Link
               key={review.id}
-              href={`/users/${userId}`}
+              href={dashboardHref("reviews")}
               role="menuitem"
               className="block rounded-lg px-3 py-2 transition hover:bg-ink/5"
             >

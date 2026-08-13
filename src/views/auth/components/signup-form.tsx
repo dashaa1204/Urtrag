@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import { signup } from "@/lib/actions";
-import { FieldError, FormError, FormNotice, SubmitButton, TextField } from "@/components/ui";
+import { FieldError, FormError, FormNotice, PhoneField, SubmitButton, TextField } from "@/components/ui";
 
 export function SignupForm({ next }: { next?: string }) {
   const [state, action, pending] = useActionState(signup, undefined);
@@ -39,12 +39,10 @@ export function SignupForm({ next }: { next?: string }) {
         required
       />
 
-      <TextField
-        label="Утас"
-        optional
-        name="phone"
-        defaultValue={state?.values?.phone}
-        placeholder="+43 ... эсвэл +976 ..."
+      <PhoneField
+        code={state?.values?.phone_code}
+        number={state?.values?.phone}
+        error={state?.fieldErrors?.phone}
       />
 
       <TextField

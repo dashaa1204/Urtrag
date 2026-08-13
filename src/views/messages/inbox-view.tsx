@@ -1,4 +1,5 @@
 import type { ConversationPreview } from "@/types";
+import { avatarUrl } from "@/lib/avatar";
 import { Avatar, CountBadge, EmptyState, LocalTime, PageContainer, PageHeader, Panel, PanelRow } from "@/components/ui";
 
 export default function InboxView({ conversations }: { conversations: ConversationPreview[] }) {
@@ -19,7 +20,7 @@ export default function InboxView({ conversations }: { conversations: Conversati
               href={`/messages/${conversation.id}`}
               className="flex items-center gap-3"
             >
-              <Avatar name={conversation.other_name} />
+              <Avatar name={conversation.other_name} src={avatarUrl(conversation.other_avatar)} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between gap-2">
                   <p

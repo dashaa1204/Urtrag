@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { SessionUser } from "@/types";
 import { logout } from "@/lib/actions";
+import { avatarUrl } from "@/lib/avatar";
 import { Avatar } from "@/components/ui";
 import { Dropdown } from "./dropdown";
 
@@ -12,18 +13,19 @@ export function UserMenu({ user }: { user: SessionUser }) {
     <Dropdown
       label="Профайлын цэс"
       triggerCls="flex cursor-pointer items-center rounded-full p-0.5 transition hover:bg-ink/5"
-      trigger={<Avatar name={user.name} size="sm" />}
+      trigger={<Avatar name={user.name} src={avatarUrl(user.avatarPath)} size="sm" />}
     >
       <div className="border-b border-ink/10 px-3 pb-2 pt-1">
         <p className="truncate text-sm font-semibold text-ink">{user.name}</p>
         <p className="truncate text-xs text-ink-soft">{user.email}</p>
       </div>
 
-      <Link href={`/users/${user.id}`} role="menuitem" className={`${itemCls} mt-1.5`}>
-        Миний профайл
+      {/* Өөрийн профайл нь /my — зар, үнэлгээ, тасалбар бүгд нэг дор. */}
+      <Link href="/my" role="menuitem" className={`${itemCls} mt-1.5`}>
+        Миний хуудас
       </Link>
-      <Link href="/my" role="menuitem" className={itemCls}>
-        Миний зар
+      <Link href="/settings" role="menuitem" className={itemCls}>
+        Тохиргоо
       </Link>
 
       <form action={logout}>

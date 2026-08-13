@@ -15,6 +15,7 @@ import { sql } from "drizzle-orm";
 
 export const listingTypeEnum = pgEnum("listing_type", ["trip", "shipment"]);
 export const listingStatusEnum = pgEnum("listing_status", ["active", "closed"]);
+export const verificationStatusEnum = pgEnum("verification_status", ["pending", "approved", "rejected"]);
 
 /**
  * Хэрэглэгчийн нийтэд харагдах мэдээлэл.
@@ -25,8 +26,40 @@ export const profiles = pgTable("profiles", {
   id: uuid("id").primaryKey(),
   name: text("name").notNull(),
   phone: text("phone"),
+  /** Оршин суугаа улс — ISO 3166-1 alpha-2. Профайл дээр далбаагаар харагдана. */
+  country: text("country"),
+  /** "Миний тухай" — нийтэд харагдах богино танилцуулга. */
+  bio: text("bio"),
+  /** avatars bucket доторх зам. URL-ийг lib/avatar.ts угсарна. */
+  avatarPath: text("avatar_path"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+/**
+ * Бичиг баримтаар хэн болохоо баталгаажуулах хүсэлт. Хэрэглэгч бүрд нэг мөр.
+ *
+ * Баримтын ФАЙЛ нь хаалттай Storage bucket-д (identity-docs) хадгалагдаж,
+ * шийдвэр гарсны дараа устгагдана — энд зөвхөн төлөв нь үлдэнэ. Иргэний
+ * баримтыг шаардлагагүй хугацаанд хадгалахгүй байх нь GDPR-ийн үндсэн зарчим.
+ */
+export const identityVerifications = pgTable(
+  "identity_verifications",
+  {
+    userId: uuid("user_id")
+      .primaryKey()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    status: verificationStatusEnum("status").notNull().default("pending"),
+    /** Bucket доторх зам. Шийдвэр гарсны дараа NULL болно. */
+    frontPath: text("front_path"),
+    backPath: text("back_path"),
+    socialUrl: text("social_url"),
+    /** Татгалзсан шалтгаан — хэрэглэгчид харагдана. */
+    note: text("note"),
+    submittedAt: timestamp("submitted_at", { withTimezone: true }).notNull().defaultNow(),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+  },
+  (t) => [index("idx_verifications_status").on(t.status, t.submittedAt)]
+);
 
 export const trips = pgTable(
   "trips",

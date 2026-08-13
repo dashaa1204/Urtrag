@@ -34,11 +34,21 @@ export function PanelRow({
 }
 
 /** Хоосон жагсаалтын нэг маягийн мэдэгдэл. */
-export function EmptyState({ title, description }: { title: string; description?: string }) {
+export function EmptyState({
+  title,
+  description,
+  action,
+}: {
+  title: string;
+  description?: string;
+  /** Доор нь гарах холбоос эсвэл товч. */
+  action?: ReactNode;
+}) {
   return (
     <div className="rounded-xl border-2 border-dashed border-ink/25 bg-card p-8 text-center sm:p-10">
       <p className="text-ink-soft">{title}</p>
       {description ? <p className="mt-1 text-sm text-ink-soft/70">{description}</p> : null}
+      {action ? <div className="mt-3 flex justify-center">{action}</div> : null}
     </div>
   );
 }

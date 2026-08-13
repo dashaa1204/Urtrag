@@ -1,11 +1,14 @@
 import type { Review } from "@/types";
-import { LocalTime, Panel, PanelRow, SectionHeader, Stars } from "@/components/ui";
+import { LocalTime } from "./local-time";
+import { Panel, PanelRow } from "./panel";
+import { SectionHeader } from "./page-shell";
+import { Stars } from "./stars";
 
-/** Хэрэглэгчийн авсан үнэлгээнүүд. */
-export function ReviewList({ reviews }: { reviews: Review[] }) {
+/** Хэрэглэгчийн авсан үнэлгээнүүд — профайл болон миний хуудсанд хоёуланд нь. */
+export function ReviewList({ reviews, title }: { reviews: Review[]; title?: string }) {
   return (
     <section>
-      <SectionHeader title={`Үнэлгээнүүд (${reviews.length})`} />
+      <SectionHeader title={title ?? `Үнэлгээнүүд (${reviews.length})`} />
       <Panel>
         {reviews.map((review) => (
           <PanelRow key={review.id}>

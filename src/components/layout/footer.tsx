@@ -18,7 +18,7 @@ export function Footer() {
         </div>
       </div>
       <div className="mx-auto w-full max-w-5xl px-4 pb-6 text-xs text-ink-soft/70">
-        Zamdaa зөвхөн хэрэглэгчдийг холбоно. Ачаа, төлбөр, гаалийн хариуцлагыг талууд өөрсдөө хүлээнэ.
+        Urtrag зөвхөн хэрэглэгчдийг холбоно. Ачаа, төлбөр, гаалийн хариуцлагыг талууд өөрсдөө хүлээнэ.
       </div>
     </footer>
   );

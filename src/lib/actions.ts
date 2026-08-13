@@ -2,10 +2,13 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { getCurrentUser, requireUser } from "./auth";
+import { getCurrentUser, requireAdmin, requireUser } from "./auth";
 import { createClient } from "./supabase/server";
 import {
   addMessage,
+  decideVerification,
+  updateProfile as updateProfileRow,
+  upsertVerification,
   closeListing as closeListingRow,
   createShipment as insertShipment,
   createTrip as insertTrip,
@@ -20,11 +23,29 @@ import {
   updateTrip as updateTripRow,
   upsertReview,
 } from "./data";
-import { findCity } from "@/constant/cities";
+import { joinPhone } from "./phone";
+import { deleteImage, deleteImagesByPrefix, uploadImage } from "./cloudinary";
+import { createAdminClient } from "./supabase/admin";
+import {
+  AVATAR_FOLDER,
+  AVATAR_FORMATS_LABEL,
+  AVATAR_MIME_TYPES,
+  MAX_AVATAR_BYTES,
+  MAX_AVATAR_LABEL,
+} from "@/constant/avatar";
+import { findCity, isCountryCode } from "@/constant/cities";
+import { BIO_MAX, DELETE_CONFIRM_WORD } from "@/constant/settings";
+import {
+  DOC_FORMATS_LABEL,
+  IDENTITY_BUCKET,
+  MAX_DOC_BYTES,
+  MAX_DOC_LABEL,
+} from "@/constant/verification";
 import { SITE } from "@/constant/site";
 import type { FormState, ListingType } from "@/types";
 
 const EMAIL_RE = /^\S+@\S+\.\S+$/;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function str(formData: FormData, key: string): string {
   const value = formData.get(key);
@@ -65,17 +86,28 @@ function authErrorMessage(message: string): string {
 export async function signup(_prev: FormState | undefined, formData: FormData): Promise<FormState> {
   const name = str(formData, "name");
   const email = str(formData, "email").toLowerCase();
-  const phone = str(formData, "phone");
+  const phoneCode = str(formData, "phone_code");
+  const phoneNumber = str(formData, "phone");
   const password = rawStr(formData, "password");
   const terms = formData.get("terms") === "on";
-  const values = { name, email, phone, terms: terms ? "on" : "" };
+  const values = {
+    name,
+    email,
+    phone: phoneNumber,
+    phone_code: phoneCode,
+    terms: terms ? "on" : "",
+  };
 
   const fieldErrors: Record<string, string> = {};
   if (name.length < 2) fieldErrors.name = "Нэрээ бүтэн оруулна уу.";
   if (!EMAIL_RE.test(email)) fieldErrors.email = "Имэйл хаяг буруу байна.";
   if (password.length < 8) fieldErrors.password = "Нууц үг дор хаяж 8 тэмдэгт байх ёстой.";
   if (!terms) fieldErrors.terms = "Хариуцлагын тайлбарыг зөвшөөрнө үү.";
+
+  const joined = joinPhone(phoneCode, phoneNumber);
+  if (!joined.ok) fieldErrors.phone = joined.error;
   if (Object.keys(fieldErrors).length > 0) return { fieldErrors, values };
+  const phone = joined.ok ? joined.phone : null;
 
   const next = safeNext(formData, "/");
   const supabase = await createClient();
@@ -493,4 +525,266 @@ export async function submitReview(_prev: FormState | undefined, formData: FormD
 
   revalidatePath(`/messages/${conversation.id}`);
   return { success: true };
+}
+
+// ---------- Бичиг баримтаар баталгаажуулах ----------
+
+const EXT_BY_MIME: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "application/pdf": "pdf",
+};
+
+function fileError(file: File, required: boolean): string | null {
+  if (file.size === 0) return required ? "Баримтын зургаа оруулна уу." : null;
+  if (!EXT_BY_MIME[file.type]) return `${DOC_FORMATS_LABEL} хэлбэрийн файл оруулна уу.`;
+  if (file.size > MAX_DOC_BYTES) return `Файл ${MAX_DOC_LABEL}-ээс хэтрэхгүй байх ёстой.`;
+  return null;
+}
+
+function doc(formData: FormData, key: string): File {
+  const value = formData.get(key);
+  return value instanceof File ? value : new File([], "");
+}
+
+/**
+ * Иргэний баримтыг хаалттай bucket-д байршуулж, хүсэлтийг хүлээлгэнэ.
+ * Файл нь зөвхөн service role түлхүүрээр хандагдана — нийтэд нээлттэй URL үүсэхгүй.
+ */
+export async function submitVerification(
+  _prev: FormState | undefined,
+  formData: FormData
+): Promise<FormState> {
+  const user = await requireUser("/settings/identity");
+
+  const front = doc(formData, "front");
+  const back = doc(formData, "back");
+  const socialUrl = str(formData, "social_url");
+
+  const fieldErrors: Record<string, string> = {};
+  const frontError = fileError(front, true);
+  const backError = fileError(back, false);
+  if (frontError) fieldErrors.front = frontError;
+  if (backError) fieldErrors.back = backError;
+  if (socialUrl && !/^https:\/\/\S+\.\S+/.test(socialUrl)) {
+    fieldErrors.social_url = "https:// -ээр эхэлсэн бүтэн холбоос оруулна уу.";
+  }
+  if (socialUrl.length > 200) fieldErrors.social_url = "Холбоос хэт урт байна.";
+  if (Object.keys(fieldErrors).length > 0) return { fieldErrors, values: { social_url: socialUrl } };
+
+  const storage = createAdminClient().storage.from(IDENTITY_BUCKET);
+
+  // Өмнөх оролдлогын файлууд үлдэхээс сэргийлж эхлээд цэвэрлэнэ
+  const { data: existing } = await storage.list(user.id);
+  if (existing && existing.length > 0) {
+    await storage.remove(existing.map((file) => `${user.id}/${file.name}`));
+  }
+
+  const stamp = Date.now();
+  const upload = async (file: File, side: string): Promise<string | null> => {
+    if (file.size === 0) return null;
+    const path = `${user.id}/${side}-${stamp}.${EXT_BY_MIME[file.type]}`;
+    const { error } = await storage.upload(path, file, { contentType: file.type, upsert: true });
+    if (error) throw error;
+    return path;
+  };
+
+  let frontPath: string | null;
+  let backPath: string | null;
+  try {
+    frontPath = await upload(front, "front");
+    backPath = await upload(back, "back");
+  } catch {
+    return { error: "Файл байршуулж чадсангүй. Дараа дахин оролдоно уу." };
+  }
+  if (!frontPath) return { fieldErrors: { front: "Баримтын зургаа оруулна уу." } };
+
+  await upsertVerification({
+    userId: user.id,
+    frontPath,
+    backPath,
+    socialUrl: socialUrl || null,
+  });
+
+  revalidatePath("/settings/identity");
+  revalidatePath("/my");
+  return { notice: "Хүсэлтийг хүлээн авлаа. 24-48 цагийн дотор шалгана." };
+}
+
+/** Хянагчийн шийдвэр. Файлууд нь шийдвэрийн дараа устна. */
+export async function decideVerificationAction(formData: FormData): Promise<void> {
+  await requireAdmin();
+
+  const userId = str(formData, "user_id");
+  const decision = str(formData, "decision");
+  const note = str(formData, "note");
+  if (!UUID_RE.test(userId) || (decision !== "approved" && decision !== "rejected")) {
+    redirect("/admin/verifications");
+  }
+
+  const paths = await decideVerification(userId, decision, note || null);
+  if (paths.length > 0) {
+    await createAdminClient().storage.from(IDENTITY_BUCKET).remove(paths);
+  }
+
+  revalidatePath("/admin/verifications");
+  revalidatePath("/my");
+  redirect("/admin/verifications");
+}
+
+// ---------- Тохиргоо ----------
+
+function isAvatarMime(type: string): boolean {
+  return (AVATAR_MIME_TYPES as readonly string[]).includes(type);
+}
+
+/**
+ * Шинэ зургийг тавиад хуучныг устгана. Хэрэглэгч бүрд нэг л файл үлдэнэ.
+ * file нь null бол зөвхөн устгана.
+ *
+ * Дараалал нь чухал: эхлээд байршуулна — амжилтгүй болбол хуучин зураг нь
+ * хэвээр үлдэж, профайл зурагтайгаа явна.
+ */
+async function replaceAvatar(
+  userId: string,
+  previousId: string | null,
+  file: File | null
+): Promise<string | null> {
+  const publicId = file ? await uploadImage(file, `${AVATAR_FOLDER}/${userId}/${Date.now()}`) : null;
+
+  if (previousId) {
+    // Хуучин файл цэвэрлэгдэхгүй үлдсэн ч профайл нь аль хэдийн шинэчлэгдсэн
+    // байх учиртай тул энд алдаа гаргахгүй.
+    try {
+      await deleteImage(previousId);
+    } catch {}
+  }
+  return publicId;
+}
+
+
+/** Профайлын мэдээлэл. Имэйл нь Supabase Auth-д байдаг тул эндээс солигдохгүй. */
+export async function updateProfile(
+  _prev: FormState | undefined,
+  formData: FormData
+): Promise<FormState> {
+  const user = await requireUser("/settings");
+
+  const name = str(formData, "name");
+  const phoneCode = str(formData, "phone_code");
+  const phoneNumber = str(formData, "phone");
+  const country = str(formData, "country");
+  const bio = str(formData, "bio");
+  const values = { name, phone: phoneNumber, phone_code: phoneCode, country, bio };
+
+  const fieldErrors: Record<string, string> = {};
+  if (name.length < 2) fieldErrors.name = "Нэрээ бүтэн оруулна уу.";
+  if (name.length > 80) fieldErrors.name = "Нэр хэт урт байна.";
+  if (country && !isCountryCode(country)) fieldErrors.country = "Жагсаалтаас улс сонгоно уу.";
+  if (bio.length > BIO_MAX) fieldErrors.bio = `Танилцуулга ${BIO_MAX} тэмдэгтэд багтана.`;
+
+  const avatar = doc(formData, "avatar");
+  const removeAvatar = formData.get("avatar_remove") === "on";
+  if (avatar.size > 0) {
+    if (!isAvatarMime(avatar.type)) {
+      fieldErrors.avatar = `${AVATAR_FORMATS_LABEL} хэлбэрийн зураг оруулна уу.`;
+    } else if (avatar.size > MAX_AVATAR_BYTES) {
+      fieldErrors.avatar = `Зураг ${MAX_AVATAR_LABEL}-ээс хэтрэхгүй байх ёстой.`;
+    }
+  }
+
+  const joined = joinPhone(phoneCode, phoneNumber);
+  if (!joined.ok) fieldErrors.phone = joined.error;
+  if (Object.keys(fieldErrors).length > 0) return { fieldErrors, values };
+
+  let avatarPath: string | null | undefined;
+  if (avatar.size > 0 || removeAvatar) {
+    try {
+      avatarPath = await replaceAvatar(user.id, user.avatarPath, avatar.size > 0 ? avatar : null);
+    } catch {
+      return { error: "Зургийг байршуулж чадсангүй. Дараа дахин оролдоно уу.", values };
+    }
+  }
+
+  await updateProfileRow(user.id, {
+    name,
+    phone: joined.ok ? joined.phone : null,
+    country: country || null,
+    bio: bio || null,
+    avatarPath,
+  });
+
+  // Нэр нь зар, мессеж, үнэлгээ бүр дээр гардаг тул холбогдох хуудсуудыг шинэчилнэ
+  revalidatePath("/settings");
+  revalidatePath("/my");
+  revalidatePath(`/users/${user.id}`);
+  return { notice: "Профайлыг хадгаллаа.", values };
+}
+
+/** Нууц үг солих. Одоогийн нууц үгээр дахин баталгаажуулж байж солино. */
+export async function changePassword(
+  _prev: FormState | undefined,
+  formData: FormData
+): Promise<FormState> {
+  const user = await requireUser("/settings/security");
+
+  const current = rawStr(formData, "current_password");
+  const password = rawStr(formData, "password");
+  const confirm = rawStr(formData, "password_confirm");
+
+  const fieldErrors: Record<string, string> = {};
+  if (current.length === 0) fieldErrors.current_password = "Одоогийн нууц үгээ оруулна уу.";
+  if (password.length < 8) fieldErrors.password = "Нууц үг дор хаяж 8 тэмдэгт байх ёстой.";
+  else if (password !== confirm) fieldErrors.password_confirm = "Хоёр нууц үг таарахгүй байна.";
+  if (Object.keys(fieldErrors).length > 0) return { fieldErrors };
+
+  const supabase = await createClient();
+  // Session хулгайлагдсан тохиолдолд нууц үгийг чөлөөтэй солихоос сэргийлнэ
+  const { error: signInError } = await supabase.auth.signInWithPassword({
+    email: user.email,
+    password: current,
+  });
+  if (signInError) {
+    return { fieldErrors: { current_password: "Одоогийн нууц үг буруу байна." } };
+  }
+
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) return { error: authErrorMessage(error.message) };
+
+  return { notice: "Нууц үг солигдлоо." };
+}
+
+/** Хэрэглэгч өөрийн бүртгэлээ бүр мөсөн устгах (GDPR). */
+export async function deleteAccount(
+  _prev: FormState | undefined,
+  formData: FormData
+): Promise<FormState> {
+  const user = await requireUser("/settings/privacy");
+
+  if (str(formData, "confirm") !== DELETE_CONFIRM_WORD) {
+    return { error: `Баталгаажуулахын тулд "${DELETE_CONFIRM_WORD}" гэж бичнэ үү.` };
+  }
+
+  const admin = createAdminClient();
+
+  // Хүснэгтүүд cascade-аар цэвэрлэгддэг ч файлууд үлддэг тул эхлээд
+  // хэрэглэгчийн хавтсуудыг хоёр талд нь устгана.
+  const storage = admin.storage.from(IDENTITY_BUCKET);
+  const { data: files } = await storage.list(user.id);
+  if (files && files.length > 0) {
+    await storage.remove(files.map((file) => `${user.id}/${file.name}`));
+  }
+  await deleteImagesByPrefix(`${AVATAR_FOLDER}/${user.id}/`);
+
+  // auth.users устахад profiles болон түүнд холбоотой бүх зар, мессеж, үнэлгээ
+  // cascade-аар дагаж устана (drizzle/0001_supabase_auth.sql).
+  const { error } = await admin.auth.admin.deleteUser(user.id);
+  if (error) {
+    return { error: "Бүртгэл устгаж чадсангүй. Дараа дахин оролдоно уу." };
+  }
+
+  const supabase = await createClient();
+  await supabase.auth.signOut();
+  redirect("/");
 }

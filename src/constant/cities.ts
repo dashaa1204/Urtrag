@@ -15,28 +15,28 @@ export interface City {
   aliases: string[];
 }
 
-export const COUNTRIES: Record<string, { country: string; flag: string }> = {
-  MN: { country: "Mongolia", flag: "🇲🇳" },
-  AT: { country: "Austria", flag: "🇦🇹" },
-  DE: { country: "Germany", flag: "🇩🇪" },
-  CZ: { country: "Czechia", flag: "🇨🇿" },
-  SK: { country: "Slovakia", flag: "🇸🇰" },
-  HU: { country: "Hungary", flag: "🇭🇺" },
-  PL: { country: "Poland", flag: "🇵🇱" },
-  CH: { country: "Switzerland", flag: "🇨🇭" },
-  NL: { country: "Netherlands", flag: "🇳🇱" },
-  BE: { country: "Belgium", flag: "🇧🇪" },
-  FR: { country: "France", flag: "🇫🇷" },
-  GB: { country: "United Kingdom", flag: "🇬🇧" },
-  IT: { country: "Italy", flag: "🇮🇹" },
-  ES: { country: "Spain", flag: "🇪🇸" },
-  SE: { country: "Sweden", flag: "🇸🇪" },
-  TR: { country: "Turkey", flag: "🇹🇷" },
-  RU: { country: "Russia", flag: "🇷🇺" },
-  KR: { country: "South Korea", flag: "🇰🇷" },
-  JP: { country: "Japan", flag: "🇯🇵" },
-  CN: { country: "China", flag: "🇨🇳" },
-  US: { country: "United States", flag: "🇺🇸" },
+export const COUNTRIES: Record<string, { country: string; flag: string; dial: string }> = {
+  MN: { country: "Mongolia", flag: "🇲🇳", dial: "+976" },
+  AT: { country: "Austria", flag: "🇦🇹", dial: "+43" },
+  DE: { country: "Germany", flag: "🇩🇪", dial: "+49" },
+  CZ: { country: "Czechia", flag: "🇨🇿", dial: "+420" },
+  SK: { country: "Slovakia", flag: "🇸🇰", dial: "+421" },
+  HU: { country: "Hungary", flag: "🇭🇺", dial: "+36" },
+  PL: { country: "Poland", flag: "🇵🇱", dial: "+48" },
+  CH: { country: "Switzerland", flag: "🇨🇭", dial: "+41" },
+  NL: { country: "Netherlands", flag: "🇳🇱", dial: "+31" },
+  BE: { country: "Belgium", flag: "🇧🇪", dial: "+32" },
+  FR: { country: "France", flag: "🇫🇷", dial: "+33" },
+  GB: { country: "United Kingdom", flag: "🇬🇧", dial: "+44" },
+  IT: { country: "Italy", flag: "🇮🇹", dial: "+39" },
+  ES: { country: "Spain", flag: "🇪🇸", dial: "+34" },
+  SE: { country: "Sweden", flag: "🇸🇪", dial: "+46" },
+  TR: { country: "Turkey", flag: "🇹🇷", dial: "+90" },
+  RU: { country: "Russia", flag: "🇷🇺", dial: "+7" },
+  KR: { country: "South Korea", flag: "🇰🇷", dial: "+82" },
+  JP: { country: "Japan", flag: "🇯🇵", dial: "+81" },
+  CN: { country: "China", flag: "🇨🇳", dial: "+86" },
+  US: { country: "United States", flag: "🇺🇸", dial: "+1" },
 };
 
 /** Улс тус бүрд [англи нэр, ...өөр бичлэгүүд]. */
@@ -144,6 +144,38 @@ export function findCity(value: string | null | undefined): City | undefined {
 export const COUNTRY_OPTIONS = Object.entries(COUNTRIES)
   .map(([code, { country, flag }]) => ({ code, country, flag }))
   .sort((a, b) => a.country.localeCompare(b.country));
+
+/**
+ * Утасны улсын кодын сонголт. Австри, Монгол хоёр хамгийн түгээмэл тул
+ * жагсаалтын эхэнд, үлдсэн нь цагаан толгойн дарааллаар.
+ */
+const DIAL_FIRST = ["AT", "MN"];
+
+function dialRank(code: string): number {
+  const index = DIAL_FIRST.indexOf(code);
+  return index === -1 ? DIAL_FIRST.length : index;
+}
+
+export const DIAL_OPTIONS = Object.entries(COUNTRIES)
+  .map(([code, { country, flag, dial }]) => ({ code, country, flag, dial }))
+  .sort((a, b) => dialRank(a.code) - dialRank(b.code) || a.country.localeCompare(b.country));
+
+/** Урт кодыг эхэлж тааруулна: "+1" нь "+41"-ийг булаахаас сэргийлнэ. */
+const DIALS_BY_LENGTH = [...new Set(DIAL_OPTIONS.map((option) => option.dial))].sort(
+  (a, b) => b.length - a.length
+);
+
+export function isDialCode(value: unknown): value is string {
+  return typeof value === "string" && DIALS_BY_LENGTH.includes(value);
+}
+
+export function dialCode(countryCode: string | null): string {
+  return (countryCode && COUNTRIES[countryCode]?.dial) || "";
+}
+
+export function findDialCode(phone: string): string | undefined {
+  return DIALS_BY_LENGTH.find((dial) => phone.startsWith(dial));
+}
 
 export function isCountryCode(value: unknown): value is string {
   return typeof value === "string" && value in COUNTRIES;

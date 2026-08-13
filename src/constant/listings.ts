@@ -16,6 +16,8 @@ interface ListingCopy {
   homeEmpty: string;
   myTitle: string;
   myEmpty: string;
+  /** Хоосон жагсаалт дээрх урих холбоос. */
+  myEmptyAction: string;
   profileTitle: string;
   newTitle: string;
   newDescription: string;
@@ -34,8 +36,9 @@ export const LISTING_COPY: Record<ListingType, ListingCopy> = {
     emptyDescription: "Та аялахаар төлөвлөж байгаа бол эхний зараа оруулаарай!",
     homeTitle: "Сүүлийн аялалууд",
     homeEmpty: "Одоогоор идэвхтэй аялал алга. Эхнийх нь та байгаарай! ✈️",
-    myTitle: "Аялалууд",
+    myTitle: "Миний аялалууд",
     myEmpty: "Та одоогоор аялал зарлаагүй байна.",
+    myEmptyAction: "Эхний аялалаа зарлах",
     profileTitle: "Идэвхтэй аялалууд",
     newTitle: "Аялал зарлах",
     newDescription:
@@ -53,8 +56,9 @@ export const LISTING_COPY: Record<ListingType, ListingCopy> = {
     emptyDescription: "Та ачаа илгээх гэж байгаа бол эхний хүсэлтээ оруулаарай!",
     homeTitle: "Сүүлийн ачаанууд",
     homeEmpty: "Одоогоор ачааны хүсэлт алга. Эхнийх нь та байгаарай! 📦",
-    myTitle: "Ачаанууд",
+    myTitle: "Миний ачаанууд",
     myEmpty: "Та одоогоор ачааны хүсэлт оруулаагүй байна.",
+    myEmptyAction: "Эхний хүсэлтээ нийтлэх",
     profileTitle: "Идэвхтэй ачаанууд",
     newTitle: "Ачаа илгээх хүсэлт",
     newDescription:

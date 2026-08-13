@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/auth";
 import {
   getUserProfile,
   getUserRating,
@@ -23,6 +24,11 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 export default async function UserProfilePage({ params }: PageProps<"/users/[id]">) {
   const { id } = await params;
   if (!UUID_RE.test(id)) notFound();
+
+  // Өөрийн профайл нь /my — тэнд зар засах, шүүх боломж бүрэн байдаг тул
+  // хоёр тусдаа хуудас барихын оронд шууд тийш нь чиглүүлнэ.
+  const viewer = await getCurrentUser();
+  if (viewer?.id === id) redirect("/my");
 
   const profile = await getUserProfile(id);
   if (!profile) notFound();

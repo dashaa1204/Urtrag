@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { SessionUser } from "@/types";
 import { logout } from "@/lib/actions";
+import { avatarUrl } from "@/lib/avatar";
 import { Avatar, btnPrimary, CountBadge } from "@/components/ui";
 
 const itemCls =
@@ -54,19 +55,19 @@ export function MobileNav({ user, unread }: { user: SessionUser | null; unread: 
             {user ? (
               <>
                 <div className="my-1 border-t border-ink/10" />
-                <Link href={`/users/${user.id}`} className={`${itemCls} gap-3`}>
-                  <Avatar name={user.name} />
+                <Link href="/my" className={`${itemCls} gap-3`}>
+                  <Avatar name={user.name} src={avatarUrl(user.avatarPath)} />
                   <span className="min-w-0">
                     <span className="block truncate">{user.name}</span>
-                    <span className="block truncate text-xs font-normal text-ink-soft">Миний профайл</span>
+                    <span className="block truncate text-xs font-normal text-ink-soft">Миний хуудас</span>
                   </span>
                 </Link>
                 <Link href="/messages" className={itemCls}>
                   Мессеж
                   <CountBadge count={unread} className="ml-2" />
                 </Link>
-                <Link href="/my" className={itemCls}>
-                  Миний зар
+                <Link href="/settings" className={itemCls}>
+                  Тохиргоо
                 </Link>
                 <form action={logout} className="contents">
                   <button

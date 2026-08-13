@@ -6,7 +6,7 @@ export default function LoginView({ next, error }: { next?: string; error?: stri
   return (
     <AuthCard
       title="Нэвтрэх"
-      description="Zamdaa платформд тавтай морил!"
+      description="Urtrag платформд тавтай морил!"
       footer={
         <>
           <p>

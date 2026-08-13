@@ -9,6 +9,14 @@ export interface SessionUser {
   email: string;
   name: string;
   phone: string | null;
+  /** Оршин суугаа улс — ISO 3166-1 alpha-2. */
+  country: string | null;
+  bio: string | null;
+  /** avatars bucket доторх зам — lib/avatar.ts URL болгоно. */
+  avatarPath: string | null;
+  /** Имэйлийн холбоосоор баталгаажсан эсэх — тасалбарын тэмдэг үүнээс шалтгаална. */
+  emailVerified: boolean;
+  createdAt: Date;
 }
 
 export interface Trip {
@@ -57,6 +65,7 @@ export interface Conversation {
 
 export interface ConversationPreview extends Conversation {
   other_name: string;
+  other_avatar: string | null;
   listing_title: string;
   last_body: string | null;
   last_at: Date | null;
@@ -89,9 +98,32 @@ export interface UserRating {
   count: number;
 }
 
+export type VerificationStatus = "pending" | "approved" | "rejected";
+
+/** Хэрэглэгчид өөрт нь харагдах баталгаажуулалтын төлөв. */
+export interface Verification {
+  status: VerificationStatus;
+  social_url: string | null;
+  /** Татгалзсан шалтгаан. */
+  note: string | null;
+  submitted_at: Date;
+  reviewed_at: Date | null;
+}
+
+/** Хянагчийн жагсаалтад — баримтын зам нь signed URL үүсгэхэд хэрэгтэй. */
+export interface PendingVerification extends Verification {
+  user_id: UserId;
+  name: string;
+  front_path: string | null;
+  back_path: string | null;
+}
+
 export interface UserProfile {
   id: UserId;
   name: string;
+  country: string | null;
+  bio: string | null;
+  avatar_path: string | null;
   created_at: Date;
 }
 

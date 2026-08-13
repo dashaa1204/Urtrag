@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/" },
 };
 
-// Брэнд хайлтад (Google-д "Zamdaa" гэж хайхад) сайтыг таниулах бүтэцлэгдсэн өгөгдөл.
+// Брэнд хайлтад (Google-д "Urtrag" гэж хайхад) сайтыг таниулах бүтэцлэгдсэн өгөгдөл.
 const jsonLd = {
   "@context": "https://schema.org",
   "@type": "WebSite",

@@ -47,7 +47,7 @@ export async function Navbar() {
                 <ChatIcon />
                 <CountBadge count={unread} className="absolute -right-1 -top-1" />
               </Link>
-              <NotificationBell userId={user.id} reviews={notifications} />
+              <NotificationBell reviews={notifications} />
               <UserMenu user={user} />
             </>
           ) : (

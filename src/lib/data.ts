@@ -1,19 +1,30 @@
 import { cache } from "react";
 import { and, count, desc, eq, gte, inArray, isNull, ne, or, sql } from "drizzle-orm";
 import { db } from "./db";
-import { conversations, messages, profiles, reviews, shipments, trips } from "./db/schema";
+import {
+  conversations,
+  identityVerifications,
+  messages,
+  profiles,
+  reviews,
+  shipments,
+  trips,
+} from "./db/schema";
 import { formatDate, formatKg } from "./format";
 import type {
   Conversation,
   ConversationPreview,
   ListingType,
   Message,
+  PendingVerification,
   Review,
   Shipment,
   Trip,
   UserId,
   UserProfile,
   UserRating,
+  Verification,
+  VerificationStatus,
 } from "@/types";
 
 function todayIso(): string {
@@ -427,7 +438,10 @@ export async function listConversations(userId: UserId): Promise<ConversationPre
         and(inArray(messages.conversationId, ids), ne(messages.senderId, userId), isNull(messages.readAt))
       )
       .groupBy(messages.conversationId),
-    db.select({ id: profiles.id, name: profiles.name }).from(profiles).where(inArray(profiles.id, otherIds)),
+    db
+      .select({ id: profiles.id, name: profiles.name, avatarPath: profiles.avatarPath })
+      .from(profiles)
+      .where(inArray(profiles.id, otherIds)),
     tripIds.length
       ? db
           .select({ id: trips.id, travelDate: trips.travelDate })
@@ -445,6 +459,7 @@ export async function listConversations(userId: UserId): Promise<ConversationPre
   const lastByConv = new Map(lastMessages.map((m) => [m.conversationId, m]));
   const unreadByConv = new Map(unreadRows.map((r) => [r.conversationId, r.unread]));
   const nameById = new Map(names.map((p) => [p.id, p.name]));
+  const avatarById = new Map(names.map((p) => [p.id, p.avatarPath]));
   const tripById = new Map(tripRows.map((t) => [t.id, t]));
   const shipmentById = new Map(shipmentRows.map((s) => [s.id, s]));
 
@@ -465,6 +480,7 @@ export async function listConversations(userId: UserId): Promise<ConversationPre
       return {
         ...c,
         other_name: nameById.get(otherId) ?? "Хэрэглэгч",
+        other_avatar: avatarById.get(otherId) ?? null,
         listing_title,
         last_body: last?.body ?? null,
         last_at: last?.createdAt ?? null,
@@ -593,12 +609,33 @@ export async function recentReviews(userId: UserId, limit: number): Promise<Revi
 
 export const getUserProfile = cache(async (id: UserId): Promise<UserProfile | null> => {
   const [row] = await db
-    .select({ id: profiles.id, name: profiles.name, created_at: profiles.createdAt })
+    .select({
+      id: profiles.id,
+      name: profiles.name,
+      country: profiles.country,
+      bio: profiles.bio,
+      avatar_path: profiles.avatarPath,
+      created_at: profiles.createdAt,
+    })
     .from(profiles)
     .where(eq(profiles.id, id))
     .limit(1);
   return row ?? null;
 });
+
+/** Тохиргооны хуудсаас профайл засах. Имэйл нь Supabase Auth-д хадгалагдана. */
+export async function updateProfile(
+  userId: UserId,
+  input: {
+    name: string;
+    phone: string | null;
+    country: string | null;
+    bio: string | null;
+    avatarPath?: string | null;
+  }
+): Promise<void> {
+  await db.update(profiles).set(input).where(eq(profiles.id, userId));
+}
 
 export async function userActiveTrips(userId: UserId): Promise<Trip[]> {
   return db
@@ -616,6 +653,86 @@ export async function userActiveShipments(userId: UserId): Promise<Shipment[]> {
     .innerJoin(profiles, eq(profiles.id, shipments.userId))
     .where(and(eq(shipments.userId, userId), eq(shipments.status, "active")))
     .orderBy(desc(shipments.createdAt));
+}
+
+// ---------- Бичиг баримтын баталгаажуулалт ----------
+
+const verificationFields = {
+  status: identityVerifications.status,
+  social_url: identityVerifications.socialUrl,
+  note: identityVerifications.note,
+  submitted_at: identityVerifications.submittedAt,
+  reviewed_at: identityVerifications.reviewedAt,
+};
+
+export const getVerification = cache(async (userId: UserId): Promise<Verification | null> => {
+  const [row] = await db
+    .select(verificationFields)
+    .from(identityVerifications)
+    .where(eq(identityVerifications.userId, userId))
+    .limit(1);
+  return row ?? null;
+});
+
+/** Дахин илгээвэл өмнөх шийдвэрийг цэвэрлээд шинээр хүлээлгэнэ. */
+export async function upsertVerification(input: {
+  userId: UserId;
+  frontPath: string;
+  backPath: string | null;
+  socialUrl: string | null;
+}): Promise<void> {
+  const row = {
+    status: "pending" as const,
+    frontPath: input.frontPath,
+    backPath: input.backPath,
+    socialUrl: input.socialUrl,
+    note: null,
+    submittedAt: new Date(),
+    reviewedAt: null,
+  };
+  await db
+    .insert(identityVerifications)
+    .values({ userId: input.userId, ...row })
+    .onConflictDoUpdate({ target: identityVerifications.userId, set: row });
+}
+
+export async function listPendingVerifications(): Promise<PendingVerification[]> {
+  return db
+    .select({
+      ...verificationFields,
+      user_id: identityVerifications.userId,
+      name: profiles.name,
+      front_path: identityVerifications.frontPath,
+      back_path: identityVerifications.backPath,
+    })
+    .from(identityVerifications)
+    .innerJoin(profiles, eq(profiles.id, identityVerifications.userId))
+    .where(eq(identityVerifications.status, "pending"))
+    .orderBy(identityVerifications.submittedAt);
+}
+
+/**
+ * Шийдвэр бичиж, баримтын замуудыг цэвэрлэнэ. Буцаах утга нь устгах ёстой
+ * файлуудын зам (Storage-оос дуудагч тал нь устгана).
+ */
+export async function decideVerification(
+  userId: UserId,
+  status: Exclude<VerificationStatus, "pending">,
+  note: string | null
+): Promise<string[]> {
+  // RETURNING нь ШИНЭ мөрийг буцаадаг тул замуудыг цэвэрлэхээс өмнө уншина.
+  const [row] = await db
+    .select({ front: identityVerifications.frontPath, back: identityVerifications.backPath })
+    .from(identityVerifications)
+    .where(eq(identityVerifications.userId, userId))
+    .limit(1);
+
+  await db
+    .update(identityVerifications)
+    .set({ status, note, reviewedAt: new Date(), frontPath: null, backPath: null })
+    .where(eq(identityVerifications.userId, userId));
+
+  return row ? [row.front, row.back].filter((path): path is string => Boolean(path)) : [];
 }
 
 export async function unreadCount(userId: UserId): Promise<number> {
