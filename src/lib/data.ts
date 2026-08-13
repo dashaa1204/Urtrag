@@ -11,9 +11,12 @@ import {
   trips,
 } from "./db/schema";
 import { formatDate, formatKg } from "./format";
+import { counterpartType, type ListingSummary } from "./listing";
 import type {
   Conversation,
   ConversationPreview,
+  DealStatus,
+  ListingDeal,
   ListingType,
   Message,
   PendingVerification,
@@ -46,6 +49,7 @@ const tripFields = {
   status: trips.status,
   created_at: trips.createdAt,
   user_name: profiles.name,
+  user_avatar: profiles.avatarPath,
 };
 
 const shipmentFields = {
@@ -63,6 +67,7 @@ const shipmentFields = {
   status: shipments.status,
   created_at: shipments.createdAt,
   user_name: profiles.name,
+  user_avatar: profiles.avatarPath,
 };
 
 // ---------- Аялал ----------
@@ -336,13 +341,13 @@ export async function deleteListing(type: ListingType, id: number, userId: UserI
 
 // ---------- Харилцан яриа ба мессеж ----------
 
-export async function getOrCreateConversation(
+/** Тухайн зар дээр хэрэглэгчийн аль хэдийн эхлүүлсэн яриа. */
+export async function findConversation(
   type: ListingType,
   listingId: number,
-  starterId: UserId,
-  ownerId: UserId
-): Promise<number> {
-  const [existing] = await db
+  starterId: UserId
+): Promise<number | null> {
+  const [row] = await db
     .select({ id: conversations.id })
     .from(conversations)
     .where(
@@ -353,43 +358,132 @@ export async function getOrCreateConversation(
       )
     )
     .limit(1);
-  if (existing) return existing.id;
+  return row?.id ?? null;
+}
+
+export async function getOrCreateConversation(
+  type: ListingType,
+  listingId: number,
+  starterId: UserId,
+  ownerId: UserId,
+  /** Эхлүүлэгчийн хос зар. Байгаа яриан дээр анхны сонголтыг дарж бичихгүй. */
+  matchedListingId: number | null
+): Promise<number> {
+  const existing = await findConversation(type, listingId, starterId);
+  if (existing !== null) return existing;
 
   const [row] = await db
     .insert(conversations)
-    .values({ listingType: type, listingId, starterId, ownerId })
+    .values({ listingType: type, listingId, matchedListingId, starterId, ownerId })
     .onConflictDoNothing()
     .returning({ id: conversations.id });
   if (row) return row.id;
 
   // Зэрэгцээ хүсэлт давхцвал onConflictDoNothing юу ч буцаахгүй тул дахин уншина
-  const [raced] = await db
-    .select({ id: conversations.id })
-    .from(conversations)
-    .where(
+  const raced = await findConversation(type, listingId, starterId);
+  if (raced === null) throw new Error("Харилцан яриа үүсгэж чадсангүй.");
+  return raced;
+}
+
+const conversationFields = {
+  id: conversations.id,
+  listing_type: conversations.listingType,
+  listing_id: conversations.listingId,
+  matched_listing_id: conversations.matchedListingId,
+  deal_status: conversations.dealStatus,
+  deal_decided_at: conversations.dealDecidedAt,
+  starter_id: conversations.starterId,
+  owner_id: conversations.ownerId,
+  created_at: conversations.createdAt,
+};
+
+/**
+ * Зар нь хоёр үүргээр хэлцэлд орж болно: өөр дээр нь хүсэлт ирээд зөвшөөрсөн,
+ * эсвэл эзэн нь өөр зар руу хандахдаа үүнийгээ хос зар болгож сонгосон.
+ * Хоёуланг нь хамарсан нөхцөл — доорх хоёр функц үүнийг хуваалцана.
+ */
+function acceptedFor(type: ListingType, ids: number[]) {
+  return and(
+    eq(conversations.dealStatus, "accepted"),
+    or(
+      and(eq(conversations.listingType, type), inArray(conversations.listingId, ids)),
       and(
-        eq(conversations.listingType, type),
-        eq(conversations.listingId, listingId),
-        eq(conversations.starterId, starterId)
+        eq(conversations.listingType, counterpartType(type)),
+        inArray(conversations.matchedListingId, ids)
       )
     )
-    .limit(1);
-  return raced.id;
+  );
+}
+
+/**
+ * Зар дээр тохирсон хэлцэл. Зар бүр дээр зөвхөн НЭГ байж чадахыг
+ * conversations_accepted_* partial unique index-үүд баталгаажуулна.
+ */
+export const getListingDeal = cache(
+  async (type: ListingType, listingId: number): Promise<ListingDeal | null> => {
+    const [row] = await db
+      .select({
+        conversation_id: conversations.id,
+        starter_id: conversations.starterId,
+        owner_id: conversations.ownerId,
+        decided_at: conversations.dealDecidedAt,
+      })
+      .from(conversations)
+      .where(acceptedFor(type, [listingId]))
+      .limit(1);
+    return row ?? null;
+  }
+);
+
+/** Өгсөн заруудаас аль хэдийн тохирчихсоныг нь ялгана (сонголтоос хасахад). */
+export async function committedListingIds(type: ListingType, ids: number[]): Promise<Set<number>> {
+  if (ids.length === 0) return new Set();
+  const rows = await db
+    .select({
+      listingType: conversations.listingType,
+      listingId: conversations.listingId,
+      matchedId: conversations.matchedListingId,
+    })
+    .from(conversations)
+    .where(acceptedFor(type, ids));
+
+  const committed = new Set<number>();
+  for (const row of rows) {
+    if (row.listingType === type) committed.add(row.listingId);
+    else if (row.matchedId !== null) committed.add(row.matchedId);
+  }
+  return committed;
+}
+
+/**
+ * Жагсаалтын заруудад "Тохирсон" шошго тавихад. Тохирсон зарыг жагсаалтаас
+ * хасахгүй — хэрэглэгч цөөтэй үед сайт хоосон харагдах нь илүү муу, бас
+ * тохиролцоо цуцлагдвал тэр зар дахин хэрэгтэй болно.
+ */
+export async function withMatchFlags(
+  type: ListingType,
+  listings: ListingSummary[]
+): Promise<ListingSummary[]> {
+  const committed = await committedListingIds(
+    type,
+    listings.map((listing) => listing.id)
+  );
+  if (committed.size === 0) return listings;
+  return listings.map((listing) =>
+    committed.has(listing.id) ? { ...listing, matched: true } : listing
+  );
+}
+
+/** Хэлцлийн шийдвэр. Давхар тохиролтыг partial unique index зогсооно. */
+export async function setDealStatus(conversationId: number, status: DealStatus): Promise<void> {
+  await db
+    .update(conversations)
+    .set({ dealStatus: status, dealDecidedAt: new Date() })
+    .where(eq(conversations.id, conversationId));
 }
 
 export async function getConversation(id: number): Promise<Conversation | null> {
-  const [row] = await db
-    .select({
-      id: conversations.id,
-      listing_type: conversations.listingType,
-      listing_id: conversations.listingId,
-      starter_id: conversations.starterId,
-      owner_id: conversations.ownerId,
-      created_at: conversations.createdAt,
-    })
-    .from(conversations)
-    .where(eq(conversations.id, id))
-    .limit(1);
+  const [row] = await db.select(conversationFields).from(conversations).where(eq(conversations.id, id)).limit(1);
   return row ?? null;
 }
 
@@ -400,14 +494,7 @@ export async function getUserName(id: UserId): Promise<string | null> {
 
 export async function listConversations(userId: UserId): Promise<ConversationPreview[]> {
   const convs = await db
-    .select({
-      id: conversations.id,
-      listing_type: conversations.listingType,
-      listing_id: conversations.listingId,
-      starter_id: conversations.starterId,
-      owner_id: conversations.ownerId,
-      created_at: conversations.createdAt,
-    })
+    .select(conversationFields)
     .from(conversations)
     .where(or(eq(conversations.starterId, userId), eq(conversations.ownerId, userId)));
 
@@ -427,6 +514,7 @@ export async function listConversations(userId: UserId): Promise<ConversationPre
         conversationId: messages.conversationId,
         body: messages.body,
         createdAt: messages.createdAt,
+        senderId: messages.senderId,
       })
       .from(messages)
       .where(inArray(messages.conversationId, ids))
@@ -484,6 +572,7 @@ export async function listConversations(userId: UserId): Promise<ConversationPre
         listing_title,
         last_body: last?.body ?? null,
         last_at: last?.createdAt ?? null,
+        last_sender_id: last?.senderId ?? null,
         unread: unreadByConv.get(c.id) ?? 0,
       };
     })
@@ -511,13 +600,16 @@ export async function addMessage(conversationId: number, senderId: UserId, body:
   await db.insert(messages).values({ conversationId, senderId, body });
 }
 
-export async function markConversationRead(conversationId: number, readerId: UserId): Promise<void> {
-  await db
+/** Уншсанд тооцно. Үнэхээр уншаагүй мессеж байсан бол true. */
+export async function markConversationRead(conversationId: number, readerId: UserId): Promise<boolean> {
+  const updated = await db
     .update(messages)
     .set({ readAt: new Date() })
     .where(
       and(eq(messages.conversationId, conversationId), ne(messages.senderId, readerId), isNull(messages.readAt))
-    );
+    )
+    .returning({ id: messages.id });
+  return updated.length > 0;
 }
 
 export async function hasMessageFrom(conversationId: number, senderId: UserId): Promise<boolean> {
@@ -539,6 +631,7 @@ const reviewFields = {
   rating: reviews.rating,
   comment: reviews.comment,
   created_at: reviews.createdAt,
+  read_at: reviews.readAt,
   reviewer_name: profiles.name,
 };
 
@@ -560,7 +653,8 @@ export async function upsertReview(input: {
     })
     .onConflictDoUpdate({
       target: [reviews.conversationId, reviews.reviewerId],
-      set: { rating: input.rating, comment: input.comment, createdAt: new Date() },
+      // Засварласан үнэлгээ шинэ мэт эрэмбэлэгддэг тул мэдэгдэл нь бас сэргэнэ.
+      set: { rating: input.rating, comment: input.comment, createdAt: new Date(), readAt: null },
     });
 }
 
@@ -603,6 +697,23 @@ export async function recentReviews(userId: UserId, limit: number): Promise<Revi
     .where(eq(reviews.revieweeId, userId))
     .orderBy(desc(reviews.createdAt))
     .limit(limit);
+}
+
+/** Хонхны тоолуур — үзээгүй үнэлгээний тоо. */
+export async function unreadReviewCount(userId: UserId): Promise<number> {
+  const [row] = await db
+    .select({ n: sql<number>`COUNT(*)::int` })
+    .from(reviews)
+    .where(and(eq(reviews.revieweeId, userId), isNull(reviews.readAt)));
+  return row?.n ?? 0;
+}
+
+/** Хонх нээгдэхэд бүх мэдэгдлийг үзсэнд тооцно. */
+export async function markReviewsRead(userId: UserId): Promise<void> {
+  await db
+    .update(reviews)
+    .set({ readAt: new Date() })
+    .where(and(eq(reviews.revieweeId, userId), isNull(reviews.readAt)));
 }
 
 // ---------- Хэрэглэгчийн профайл ----------

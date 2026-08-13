@@ -6,11 +6,13 @@ import {
   getOwnReview,
   getShipment,
   getTrip,
-  getUserName,
+  getUserProfile,
   hasMessageFrom,
   listMessages,
   markConversationRead,
 } from "@/lib/data";
+import { avatarUrl } from "@/lib/avatar";
+import { counterpartType, listingPath } from "@/lib/listing";
 import { formatDate, formatKg } from "@/lib/format";
 import ConversationView from "@/views/messages/conversation-view";
 
@@ -28,12 +30,12 @@ export default async function ConversationPage({ params }: PageProps<"/messages/
     notFound();
   }
 
-  await markConversationRead(conversation.id, user.id);
+  const hadUnread = await markConversationRead(conversation.id, user.id);
 
   const otherId = conversation.starter_id === user.id ? conversation.owner_id : conversation.starter_id;
 
-  const [otherName, messages, canReview, ownReview] = await Promise.all([
-    getUserName(otherId),
+  const [other, messages, canReview, ownReview] = await Promise.all([
+    getUserProfile(otherId),
     listMessages(conversation.id),
     hasMessageFrom(conversation.id, otherId),
     getOwnReview(conversation.id, user.id),
@@ -51,16 +53,48 @@ export default async function ConversationPage({ params }: PageProps<"/messages/
     listingHref = `/shipments/${conversation.listing_id}`;
   }
 
+  // Яриа эхлүүлэгчийн хос зар. Устсан эсвэл хуучин ярианд байхгүй байж болно.
+  const otherName = other?.name ?? "Хэрэглэгч";
+  const matchType = counterpartType(conversation.listing_type);
+  const matchId = conversation.matched_listing_id;
+  const matchLabel = conversation.starter_id === user.id ? "Таны зар" : `${otherName}-ийн зар`;
+  let match: { label: string; title: string; href: string } | null = null;
+  if (matchId !== null) {
+    if (matchType === "trip") {
+      const trip = await getTrip(matchId);
+      if (trip) {
+        match = {
+          label: matchLabel,
+          title: `Аялал · ${formatDate(trip.travel_date)}`,
+          href: listingPath("trip", trip.id),
+        };
+      }
+    } else {
+      const shipment = await getShipment(matchId);
+      if (shipment) {
+        match = {
+          label: matchLabel,
+          title: `Ачаа · ${formatKg(shipment.weight_kg)}`,
+          href: listingPath("shipment", shipment.id),
+        };
+      }
+    }
+  }
+
   return (
     <ConversationView
       conversation={conversation}
       messages={messages}
       currentUserId={user.id}
-      otherName={otherName ?? "Хэрэглэгч"}
+      otherId={otherId}
+      otherName={otherName}
+      otherAvatar={avatarUrl(other?.avatar_path)}
       listingTitle={listingTitle}
       listingHref={listingHref}
+      match={match}
       canReview={canReview}
       ownReview={ownReview}
+      hadUnread={hadUnread}
     />
   );
 }

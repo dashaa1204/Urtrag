@@ -65,9 +65,10 @@ export function ProfileForm({ user }: { user: SessionUser }) {
         error={state?.fieldErrors?.country}
       >
         <option value="">Сонгоогүй</option>
+        {/* Нэр эхэлж бичигдэнэ — гар дээр үсэг дарахад браузер тухайн улс руу үсэрнэ. */}
         {COUNTRY_OPTIONS.map((country) => (
           <option key={country.code} value={country.code}>
-            {country.flag} {country.country}
+            {country.country} {country.flag}
           </option>
         ))}
       </SelectField>

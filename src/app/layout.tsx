@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { Footer, Navbar } from "@/components/layout";
+import { Footer, Navbar, PresenceProvider } from "@/components/layout";
+import { getCurrentUser } from "@/lib/auth";
 import { SITE } from "@/constant/site";
 
 const inter = Inter({
@@ -29,13 +30,19 @@ export const metadata: Metadata = {
   twitter: { card: "summary_large_image" },
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  // getCurrentUser нь request-ийн хэмжээнд cache хийгддэг тул Navbar-ын
+  // дуудлагатай давхцаад нэмэлт хүсэлт үүсгэхгүй.
+  const user = await getCurrentUser();
+
   return (
     <html lang="mn" className={`${inter.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col bg-paper text-ink">
-        <Navbar />
-        <main className="flex-1">{children}</main>
-        <Footer />
+        <PresenceProvider userId={user?.id ?? null}>
+          <Navbar />
+          <main className="flex-1">{children}</main>
+          <Footer />
+        </PresenceProvider>
       </body>
     </html>
   );

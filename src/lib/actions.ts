@@ -6,6 +6,7 @@ import { getCurrentUser, requireAdmin, requireUser } from "./auth";
 import { createClient } from "./supabase/server";
 import {
   addMessage,
+  committedListingIds,
   decideVerification,
   updateProfile as updateProfileRow,
   upsertVerification,
@@ -13,16 +14,20 @@ import {
   createShipment as insertShipment,
   createTrip as insertTrip,
   deleteListing as deleteListingRow,
+  findConversation,
   getConversation,
   getOrCreateConversation,
   getShipment,
   getTrip,
   hasMessageFrom,
+  markReviewsRead,
   reopenListing as reopenListingRow,
+  setDealStatus,
   updateShipment as updateShipmentRow,
   updateTrip as updateTripRow,
   upsertReview,
 } from "./data";
+import { internalPath } from "./nav";
 import { joinPhone } from "./phone";
 import { deleteImage, deleteImagesByPrefix, uploadImage } from "./cloudinary";
 import { createAdminClient } from "./supabase/admin";
@@ -33,7 +38,9 @@ import {
   MAX_AVATAR_BYTES,
   MAX_AVATAR_LABEL,
 } from "@/constant/avatar";
+import { counterpartType } from "./listing";
 import { findCity, isCountryCode } from "@/constant/cities";
+import { MATCH_COPY } from "@/constant/listings";
 import { BIO_MAX, DELETE_CONFIRM_WORD } from "@/constant/settings";
 import {
   DOC_FORMATS_LABEL,
@@ -58,8 +65,7 @@ function rawStr(formData: FormData, key: string): string {
 }
 
 function safeNext(formData: FormData, fallback: string): string {
-  const next = str(formData, "next");
-  return next.startsWith("/") && !next.startsWith("//") ? next : fallback;
+  return internalPath(str(formData, "next")) ?? fallback;
 }
 
 function appUrl(): string {
@@ -299,7 +305,8 @@ export async function createTrip(_prev: FormState | undefined, formData: FormDat
   const id = await insertTrip({ userId: user.id, ...result.input });
 
   revalidatePath("/trips");
-  redirect(`/trips/${id}`);
+  // Зар дээрээс "зар оруулах" гэж ирсэн бол буцаагаад тэр зар руу нь тавина.
+  redirect(safeNext(formData, `/trips/${id}`));
 }
 
 export async function updateTrip(_prev: FormState | undefined, formData: FormData): Promise<FormState> {
@@ -383,7 +390,8 @@ export async function createShipment(_prev: FormState | undefined, formData: For
   const id = await insertShipment({ userId: user.id, ...result.input });
 
   revalidatePath("/shipments");
-  redirect(`/shipments/${id}`);
+  // Зар дээрээс "зар оруулах" гэж ирсэн бол буцаагаад тэр зар руу нь тавина.
+  redirect(safeNext(formData, `/shipments/${id}`));
 }
 
 export async function updateShipment(_prev: FormState | undefined, formData: FormData): Promise<FormState> {
@@ -481,14 +489,99 @@ export async function sendMessage(_prev: FormState | undefined, formData: FormDa
   if ((type !== "trip" && type !== "shipment") || !Number.isInteger(listingId)) {
     return { error: "Зар олдсонгүй." };
   }
-  const listing = type === "trip" ? await getTrip(listingId) : await getShipment(listingId);
+  const listingType = type as ListingType;
+  const listing = listingType === "trip" ? await getTrip(listingId) : await getShipment(listingId);
   if (!listing) return { error: "Зар олдсонгүй." };
   if (listing.user_id === user.id) return { error: "Өөрийн зар руу мессеж илгээх боломжгүй." };
 
-  const conversationId = await getOrCreateConversation(type as ListingType, listingId, user.id, listing.user_id);
+  // Хүсэлт бүр хос зартай: аялал руу ачаагаараа, ачаа руу аялалаараа хандана.
+  // Яриа аль хэдийн үүссэн бол анх сонгосон зар нь хэвээр үлдэнэ.
+  let matchedListingId: number | null = null;
+  if ((await findConversation(listingType, listingId, user.id)) === null) {
+    const matchType = counterpartType(listingType);
+    const matchId = Number(str(formData, "match_listing_id"));
+    const match = Number.isInteger(matchId)
+      ? matchType === "trip"
+        ? await getTrip(matchId)
+        : await getShipment(matchId)
+      : null;
+    // Чиглэл нь эзний зартай яг таарах ёстой — өөр чиглэлийн зар хавсаргаж
+    // болохгүй (жагсаалт нь шүүгдсэн ч хүсэлт нь шууд илгээгдэж болно).
+    if (
+      !match ||
+      match.user_id !== user.id ||
+      match.status !== "active" ||
+      match.from_country !== listing.from_country ||
+      match.to_country !== listing.to_country
+    ) {
+      return { error: MATCH_COPY[matchType].pickError, values: { body } };
+    }
+    // Тохирчихсон зараа дахин санал болгуулахгүй
+    if ((await committedListingIds(matchType, [match.id])).size > 0) {
+      return { error: MATCH_COPY[matchType].committedError, values: { body } };
+    }
+    matchedListingId = match.id;
+  }
+
+  const conversationId = await getOrCreateConversation(
+    listingType,
+    listingId,
+    user.id,
+    listing.user_id,
+    matchedListingId
+  );
   await addMessage(conversationId, user.id, body);
   revalidatePath("/messages");
   redirect(`/messages/${conversationId}`);
+}
+
+// ---------- Хэлцэл ----------
+
+/**
+ * Хүсэлтийг зөвшөөрөх / татгалзах / тохирсноо цуцлах.
+ *
+ * Зөвшөөрөх эрх зөвхөн зарын эзэнд байна — хүсэлт илгээгч нь аль хэдийн
+ * саналаа тавьсан тул хоёр дахь баталгаа шаардлагагүй. Цуцлахыг хоёр тал
+ * хийж чадна: тохирсны дараа нөхцөл өөрчлөгдвөл хоёр зар хоёулаа сулрах ёстой.
+ */
+export async function decideDeal(_prev: FormState | undefined, formData: FormData): Promise<FormState> {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+
+  const decision = str(formData, "decision");
+  if (decision !== "accepted" && decision !== "cancelled") return { error: "Үйлдэл танигдсангүй." };
+
+  const conversationId = Number(str(formData, "conversation_id"));
+  const conversation = Number.isInteger(conversationId) ? await getConversation(conversationId) : null;
+  if (!conversation || (conversation.starter_id !== user.id && conversation.owner_id !== user.id)) {
+    return { error: "Харилцан яриа олдсонгүй." };
+  }
+
+  if (decision === "accepted") {
+    if (conversation.owner_id !== user.id) return { error: "Зөвхөн зарын эзэн тохирох боломжтой." };
+    if (conversation.matched_listing_id === null) {
+      return { error: "Энэ хүсэлтэд хос зар алга байна." };
+    }
+    if (conversation.deal_status !== "accepted") {
+      try {
+        await setDealStatus(conversation.id, "accepted");
+      } catch {
+        // partial unique index: хоёр зарын аль нэг нь өөр хэлцэлд орсон байна
+        return { error: "Хоёр зарын аль нэг нь өөр хүсэлттэй аль хэдийн тохирсон байна." };
+      }
+    }
+  } else if (conversation.deal_status !== "cancelled") {
+    await setDealStatus(conversation.id, "cancelled");
+  }
+
+  // Хоёр зарын хуудас хоёулаа "Тохирсон" тэмдгээ шинэчлэх ёстой
+  revalidateListing(conversation.listing_type, conversation.listing_id);
+  if (conversation.matched_listing_id !== null) {
+    revalidateListing(counterpartType(conversation.listing_type), conversation.matched_listing_id);
+  }
+  revalidatePath(`/messages/${conversation.id}`);
+  revalidatePath("/messages");
+  return { success: true };
 }
 
 // ---------- Үнэлгээ ----------
@@ -525,6 +618,16 @@ export async function submitReview(_prev: FormState | undefined, formData: FormD
 
   revalidatePath(`/messages/${conversation.id}`);
   return { success: true };
+}
+
+/**
+ * Хонх нээгдэхэд мэдэгдлийг үзсэнд тооцно. Тоолуур нь layout дотор байдаг тул
+ * дуудсан клиент нь дараа нь router.refresh() хийж шинэчилнэ.
+ */
+export async function markNotificationsRead(): Promise<void> {
+  const user = await getCurrentUser();
+  if (!user) return;
+  await markReviewsRead(user.id);
 }
 
 // ---------- Бичиг баримтаар баталгаажуулах ----------
@@ -702,7 +805,9 @@ export async function updateProfile(
   if (avatar.size > 0 || removeAvatar) {
     try {
       avatarPath = await replaceAvatar(user.id, user.avatarPath, avatar.size > 0 ? avatar : null);
-    } catch {
+    } catch (error) {
+      // Жинхэнэ шалтгааныг лог руу — хэрэглэгчид ойлгомжтой текст үлдээнэ
+      console.error("[avatar] байршуулж чадсангүй:", error);
       return { error: "Зургийг байршуулж чадсангүй. Дараа дахин оролдоно уу.", values };
     }
   }

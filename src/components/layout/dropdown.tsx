@@ -9,11 +9,13 @@ interface DropdownProps {
   trigger: ReactNode;
   triggerCls: string;
   panelCls?: string;
+  /** Самбар нээгдэх бүрд дуудагдана — жишээ нь мэдэгдлийг үзсэнд тооцоход. */
+  onOpen?: () => void;
   children: ReactNode;
 }
 
 /** Навигацийн хонх/профайл цэсэнд зориулсан нээгддэг самбар. */
-export function Dropdown({ label, trigger, triggerCls, panelCls = "w-56", children }: DropdownProps) {
+export function Dropdown({ label, trigger, triggerCls, panelCls = "w-56", onOpen, children }: DropdownProps) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const [lastPathname, setLastPathname] = useState(pathname);
@@ -43,11 +45,17 @@ export function Dropdown({ label, trigger, triggerCls, panelCls = "w-56", childr
     };
   }, [open]);
 
+  function toggle() {
+    const next = !open;
+    setOpen(next);
+    if (next) onOpen?.();
+  }
+
   return (
     <div ref={rootRef} className="relative">
       <button
         type="button"
-        onClick={() => setOpen((value) => !value)}
+        onClick={toggle}
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label={label}

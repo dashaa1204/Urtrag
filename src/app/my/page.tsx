@@ -1,6 +1,13 @@
 import type { Metadata } from "next";
 import { requireUser } from "@/lib/auth";
-import { getUserRating, getVerification, listUserReviews, myShipments, myTrips } from "@/lib/data";
+import {
+  getUserRating,
+  getVerification,
+  listUserReviews,
+  myShipments,
+  myTrips,
+  withMatchFlags,
+} from "@/lib/data";
 import { shipmentSummary, tripSummary } from "@/lib/listing";
 import { parseFilter, parseTab } from "@/constant/dashboard";
 import DashboardView from "@/views/my/dashboard-view";
@@ -24,8 +31,8 @@ export default async function MyPage({ searchParams }: PageProps<"/my">) {
       user={user}
       rating={rating}
       reviews={reviews}
-      trips={trips.map(tripSummary)}
-      shipments={shipments.map(shipmentSummary)}
+      trips={await withMatchFlags("trip", trips.map(tripSummary))}
+      shipments={await withMatchFlags("shipment", shipments.map(shipmentSummary))}
       identityVerified={verification?.status === "approved"}
       tab={parseTab(tab)}
       filter={parseFilter(status)}

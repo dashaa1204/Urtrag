@@ -42,9 +42,10 @@ function CountrySelect({ label, name, value }: { label: string; name: string; va
       </label>
       <select id={`filter-${name}`} name={name} defaultValue={value ?? ""} className={inputCls}>
         <option value="">Бүх улс</option>
+        {/* Нэр эхэлж бичигдэнэ — гар дээр үсэг дарахад браузер тухайн улс руу үсэрнэ. */}
         {COUNTRY_OPTIONS.map((country) => (
           <option key={country.code} value={country.code}>
-            {country.flag} {country.country}
+            {country.country} {country.flag}
           </option>
         ))}
       </select>

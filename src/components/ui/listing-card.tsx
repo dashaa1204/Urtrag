@@ -1,5 +1,8 @@
 import Link from "next/link";
 import type { ListingSummary } from "@/lib/listing";
+import { avatarUrl } from "@/lib/avatar";
+import { Avatar } from "./avatar";
+import { Badge } from "./badge";
 
 /** Аялал ба ачааны зарын нэгдсэн карт. */
 export function ListingCard({ listing }: { listing: ListingSummary }) {
@@ -10,7 +13,10 @@ export function ListingCard({ listing }: { listing: ListingSummary }) {
     >
       <div className="flex items-center justify-between gap-2">
         <span className="min-w-0 break-words text-sm font-semibold text-ink">{listing.title}</span>
-        <span className="shrink-0 text-xs">{listing.flags}</span>
+        <span className="flex shrink-0 items-center gap-2">
+          {listing.matched ? <Badge tone="amber">Тохирсон</Badge> : null}
+          <span className="text-xs">{listing.flags}</span>
+        </span>
       </div>
 
       <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink-soft">
@@ -24,7 +30,10 @@ export function ListingCard({ listing }: { listing: ListingSummary }) {
         <p className="mt-2 line-clamp-2 break-words text-sm text-ink-soft">{listing.body}</p>
       ) : null}
 
-      <p className="mt-2 text-xs text-ink-soft/70">{listing.userName}</p>
+      <div className="mt-3 flex items-center gap-2 text-xs text-ink-soft/70">
+        <Avatar name={listing.userName} src={avatarUrl(listing.userAvatar)} size="xs" />
+        <span className="min-w-0 truncate">{listing.userName}</span>
+      </div>
     </Link>
   );
 }

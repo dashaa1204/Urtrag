@@ -99,7 +99,7 @@ src/
   components/   # хуваалцсан layout / ui
   lib/
     db/         # Drizzle schema + Postgres холболт
-    supabase/   # Supabase клиентүүд (server / admin)
+    supabase/   # Supabase клиентүүд (server / admin / client — realtime)
     cloudinary.ts # зураг байршуулах / устгах (сервер тал)
     avatar.ts   # public_id → хүргэх URL
     auth.ts     # getCurrentUser / requireUser
@@ -122,8 +122,32 @@ scripts/         # seed.ts (тест дата), setup-storage.ts (bucket)
 
 ## Аюулгүй байдлын тэмдэглэл
 
-Бүх хүснэгт дээр RLS асаалттай бөгөөд policy үүсгээгүй. Өөрөөр хэлбэл Supabase-ийн
-нээлттэй REST API-аар (anon түлхүүр) эдгээр хүснэгтэд хандах боломжгүй. Апп нь
-`DATABASE_URL`-ээр шууд холбогдож, хандах эрхийн шалгалтыг server action болон
-`requireUser` дээр хийдэг. Хэрэв ирээдүйд клиент талаас `supabase-js`-ээр шууд
-хандах бол хүснэгт бүрт policy бичих шаардлагатай.
+Бүх хүснэгт дээр RLS асаалттай. Апп нь `DATABASE_URL`-ээр шууд холбогдож, хандах
+эрхийн шалгалтыг server action болон `requireUser` дээр хийдэг.
+
+Policy нь зөвхөн `conversations`, `messages`, `reviews` дээр, зөвхөн SELECT-д
+байдаг — эхний хоёрт нь харилцан ярианы оролцогчид, `reviews` дээр үнэлгээ авсан
+хүн өөрөө. Энэ нь realtime мэдэгдлийг Supabase хэрэглэгч бүрээр шүүхэд
+шаардлагатай (доорх хэсгийг үзнэ үү). Бусад хүснэгт policy-гүй тул нээлттэй REST
+API-аар (anon түлхүүр) юу ч уншигдахгүй; INSERT / UPDATE / DELETE нь бүх хүснэгт
+дээр мөн адил хаалттай.
+
+## Realtime
+
+Шинэ мессеж, үнэлгээ орж ирэхэд `RealtimeSync` (navbar доторх) нь Supabase
+Realtime-аар `messages` (INSERT / UPDATE) ба `reviews` (INSERT) хүснэгтийг
+сонсоод `router.refresh()` дуудна. Өгөгдлийг клиент дээр угсрахгүй — сервер дахин
+render хийдэг тул уншаагүйн тоолуур, мэдэгдэл, inbox, нээлттэй харилцан яриа нэг
+дор шинэчлэгдэж, эрхийн шалгалт сервер талдаа хэвээр үлддэг.
+
+Клиент нь ямар мөр авахаа өөрөө шүүхгүй — `messages_select_participant` болон
+`reviews_select_reviewee` policy нь хамааралгүй хүнд мэдэгдэл огт хүргэхгүй. Шинэ
+Supabase төсөл дээр `0007`, `0008` migration нь `messages`, `reviews`-ийг
+`supabase_realtime` publication-д нэмнэ.
+
+Мэдэгдлийн хонх нь `reviews.read_at`-аар уншаагүйн тоог харуулна — хонх нээгдмэгц
+бүх мэдэгдэл үзсэнд тооцогдоно. Үнэлгээ засварлагдвал `read_at` дахин хоосорч
+мэдэгдэл сэргэнэ.
+
+Идэвхтэй төлөв (`PresenceProvider`) болон "бичиж байна" дохио нь өгөгдлийн санг
+огт хөндөхгүй — Realtime-ийн presence / broadcast сувгаар л явна.

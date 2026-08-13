@@ -25,6 +25,49 @@ interface ListingCopy {
   submitLabel: string;
 }
 
+/** Зар дээр хүсэлт илгээхэд шаардагдах ХОС зарын тухай бичвэр. */
+interface MatchCopy {
+  /** Сонголтын гарчиг. */
+  pickLabel: string;
+  /** Сонголтгүй, өөр чиглэлийн эсвэл хэн нэгний зар илгээгдвэл. */
+  pickError: string;
+  /** Аль хэдийн тохирсон зараа санал болгох гэвэл. */
+  committedError: string;
+  /** Тухайн чиглэлд тохирох зар байхгүй үеийн урилга. */
+  emptyTitle: string;
+  emptyDescription: (route: string) => string;
+  /** Зартай ч бүгд нь өөр хүнтэй тохирчихсон бол. */
+  committedTitle: string;
+  committedDescription: string;
+}
+
+/**
+ * Түлхүүр нь ХОС зарын төрөл (lib/listing.ts → counterpartType):
+ * аялалын зар руу хандахад ачааны зар, ачааны зар руу хандахад аялал хэрэгтэй.
+ */
+export const MATCH_COPY: Record<ListingType, MatchCopy> = {
+  shipment: {
+    pickLabel: "Аль ачаагаа илгээх вэ?",
+    pickError: "Энэ чиглэлийн ачааны зараа сонгоно уу.",
+    committedError: "Энэ ачаа өөр аялагчтай аль хэдийн тохирсон байна.",
+    emptyTitle: "Энэ чиглэлд оруулсан ачааны зар алга байна.",
+    emptyDescription: (route) =>
+      `${route} чиглэлд ачааны зараа оруулбал аялагч танд юу, хэдэн кг илгээхийг хараад хариулна.`,
+    committedTitle: "Энэ чиглэлийн ачаа тань аль хэдийн тохирсон байна.",
+    committedDescription: "Өөр ачаа илгээх бол шинэ зар оруулна уу.",
+  },
+  trip: {
+    pickLabel: "Аль аялалдаа авах вэ?",
+    pickError: "Энэ чиглэлийн аялалаа сонгоно уу.",
+    committedError: "Энэ аялал өөр ачаатай аль хэдийн тохирсон байна.",
+    emptyTitle: "Энэ чиглэлд зарласан аялал алга байна.",
+    emptyDescription: (route) =>
+      `${route} чиглэлд аялалаа зарлавал илгээгч таны огноо, үнийг хараад хариулна.`,
+    committedTitle: "Энэ чиглэлийн аялал тань аль хэдийн тохирсон байна.",
+    committedDescription: "Дахиад ачаа авах боломжтой бол шинэ зар оруулна уу.",
+  },
+};
+
 export const LISTING_COPY: Record<ListingType, ListingCopy> = {
   trip: {
     listTitle: "Аялалууд",

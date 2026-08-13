@@ -7,7 +7,21 @@ import { RouteFields } from "@/views/listings/components";
 import { LISTING_COPY } from "@/constant/listings";
 import type { Trip } from "@/types";
 
-export function TripForm({ trip }: { trip?: Trip }) {
+/**
+ * next — хадгалсны дараа буцаж очих дотоод зам, from/to — урьдчилж бөглөх хот
+ * (хоёулаа ачааны зар дээрээс "аялал зарлах" гэж ирэхэд ирнэ).
+ */
+export function TripForm({
+  trip,
+  next,
+  from,
+  to,
+}: {
+  trip?: Trip;
+  next?: string;
+  from?: string;
+  to?: string;
+}) {
   const isEdit = trip !== undefined;
   const [state, action, pending] = useActionState(isEdit ? updateTrip : createTrip, undefined);
   const values = state?.values;
@@ -16,12 +30,13 @@ export function TripForm({ trip }: { trip?: Trip }) {
   return (
     <form action={action} className="flex flex-col gap-4">
       {isEdit ? <input type="hidden" name="id" value={trip.id} /> : null}
+      {next ? <input type="hidden" name="next" value={next} /> : null}
 
       <FormError message={state?.error} />
 
       <RouteFields
-        from={values?.from_city ?? trip?.from_city ?? ""}
-        to={values?.to_city ?? trip?.to_city ?? ""}
+        from={values?.from_city ?? trip?.from_city ?? from ?? ""}
+        to={values?.to_city ?? trip?.to_city ?? to ?? ""}
         fromError={errors?.from_city}
         toError={errors?.to_city}
       />

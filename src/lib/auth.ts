@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { notFound, redirect } from "next/navigation";
 import { db } from "./db";
 import { profiles } from "./db/schema";
+import { internalPath } from "./nav";
 import { createClient } from "./supabase/server";
 import type { SessionUser } from "@/types";
 
@@ -91,9 +92,8 @@ export async function requireAdmin(): Promise<SessionUser> {
 export async function requireUser(next?: string): Promise<SessionUser> {
   const user = await getCurrentUser();
   if (!user) {
-    const target =
-      next && next.startsWith("/") && !next.startsWith("//") ? `/login?next=${encodeURIComponent(next)}` : "/login";
-    redirect(target);
+    const target = internalPath(next);
+    redirect(target ? `/login?next=${encodeURIComponent(target)}` : "/login");
   }
   return user;
 }

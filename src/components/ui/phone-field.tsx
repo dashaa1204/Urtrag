@@ -19,21 +19,26 @@ export function PhoneField({
 }) {
   return (
     <Field label="Утас" htmlFor="phone" optional hint={hint} error={error}>
-      <div className="flex gap-2">
-        <select
-          name="phone_code"
-          defaultValue={code}
-          aria-label="Улсын код"
-          className={`${inputCls} w-32 shrink-0`}
-        >
-          <option value="">Код</option>
+      {/*
+        inputCls дотор w-full байгаа тул кодын өргөнийг w-32-оор заах гэвэл
+        CSS-д хожим бичигдсэн w-full нь ялдаг. Өргөнийг багана өөрөө барина.
+        Улсын нэр багтахаар өргөн хэрэгтэй тул нарийн дэлгэцэн дээр дээр доор нь тавина.
+      */}
+      <div className="grid gap-2 sm:grid-cols-[13rem_1fr]">
+        {/*
+          Нэр эхэлж бичигдэнэ — гар дээр үсэг дарахад браузер тухайн улс руу
+          үсэрнэ. Далбаа урд нь байвал энэ таарахаа болино.
+        */}
+        <select name="phone_code" defaultValue={code} aria-label="Улсын код" className={inputCls}>
+          <option value="">Улс сонгох</option>
           {DIAL_OPTIONS.map((option) => (
             <option key={option.code} value={option.dial}>
-              {option.flag} {option.dial}
+              {option.country} ({option.dial})
             </option>
           ))}
         </select>
 
+        {/* min-w-0: input-ийн өгөгдмөл дотоод өргөн 1fr баганыг түлхэхээс сэргийлнэ */}
         <input
           id="phone"
           name="phone"
@@ -42,7 +47,7 @@ export function PhoneField({
           autoComplete="tel-national"
           defaultValue={number}
           placeholder="660 123 4567"
-          className={inputCls}
+          className={`${inputCls} min-w-0`}
         />
       </div>
     </Field>

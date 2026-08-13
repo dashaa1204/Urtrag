@@ -7,5 +7,5 @@ export const metadata: Metadata = { title: "Мессеж", robots: { index: fals
 
 export default async function MessagesPage() {
   const user = await requireUser("/messages");
-  return <InboxView conversations={await listConversations(user.id)} />;
+  return <InboxView conversations={await listConversations(user.id)} currentUserId={user.id} />;
 }

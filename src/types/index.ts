@@ -34,6 +34,8 @@ export interface Trip {
   status: ListingStatus;
   created_at: Date;
   user_name: string;
+  /** Эзний Cloudinary public_id — lib/avatar.ts URL болгоно. */
+  user_avatar: string | null;
 }
 
 export interface Shipment {
@@ -52,15 +54,35 @@ export interface Shipment {
   status: ListingStatus;
   created_at: Date;
   user_name: string;
+  /** Эзний Cloudinary public_id — lib/avatar.ts URL болгоно. */
+  user_avatar: string | null;
 }
+
+/**
+ * pending — зарын эзэн шийдээгүй, accepted — тохирсон (хоёр зар хоёулаа
+ * "эзэнтэй" болно), cancelled — татгалзсан эсвэл дараа нь цуцалсан.
+ */
+export type DealStatus = "pending" | "accepted" | "cancelled";
 
 export interface Conversation {
   id: number;
   listing_type: ListingType;
   listing_id: number;
+  /** Эхлүүлэгчийн хос зар — зарын эсрэг төрөл. Хуучин яриануудад null. */
+  matched_listing_id: number | null;
+  deal_status: DealStatus;
+  deal_decided_at: Date | null;
   starter_id: UserId;
   owner_id: UserId;
   created_at: Date;
+}
+
+/** Зар дээр тохирсон хэлцэл — дэлгэрэнгүй хуудсанд "Тохирсон" гэж харуулна. */
+export interface ListingDeal {
+  conversation_id: number;
+  starter_id: UserId;
+  owner_id: UserId;
+  decided_at: Date | null;
 }
 
 export interface ConversationPreview extends Conversation {
@@ -69,6 +91,8 @@ export interface ConversationPreview extends Conversation {
   listing_title: string;
   last_body: string | null;
   last_at: Date | null;
+  /** Сүүлийн мессежийг хэн бичсэн — жагсаалтад "Та:" гэж тэмдэглэхэд. */
+  last_sender_id: UserId | null;
   unread: number;
 }
 
@@ -90,6 +114,8 @@ export interface Review {
   rating: number;
   comment: string | null;
   created_at: Date;
+  /** Үнэлүүлсэн хүн мэдэгдлээ үзсэн эсэх. */
+  read_at: Date | null;
   reviewer_name: string;
 }
 

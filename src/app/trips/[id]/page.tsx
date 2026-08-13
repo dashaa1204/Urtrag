@@ -1,8 +1,15 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getTrip, getUserRating } from "@/lib/data";
+import {
+  committedListingIds,
+  findConversation,
+  getListingDeal,
+  getTrip,
+  getUserRating,
+  userActiveShipments,
+} from "@/lib/data";
 import { getCurrentUser } from "@/lib/auth";
-import { tripSummary } from "@/lib/listing";
+import { sameRoute, shipmentSummary, tripSummary, type ListingSummary } from "@/lib/listing";
 import { formatDate, formatKg, formatPrice, routeTitle } from "@/lib/format";
 import { SITE } from "@/constant/site";
 import { ListingDetailView } from "@/views/listings";
@@ -36,6 +43,43 @@ export default async function TripDetailPage({ params }: PageProps<"/trips/[id]"
   const trip = await getTrip(tripId);
   if (!trip) notFound();
 
-  const [viewer, ownerRating] = await Promise.all([getCurrentUser(), getUserRating(trip.user_id)]);
-  return <ListingDetailView listing={tripSummary(trip)} viewer={viewer} ownerRating={ownerRating} />;
+  const [viewer, ownerRating, deal] = await Promise.all([
+    getCurrentUser(),
+    getUserRating(trip.user_id),
+    getListingDeal("trip", trip.id),
+  ]);
+
+  const listing = tripSummary(trip);
+
+  // Аялалын зар руу ачаагаараа хандана — үзэгчийн ижил чиглэлийн, өөр хүнтэй
+  // тохироогүй ачааны заруудыг сонгуулахаар бэлдэнэ.
+  let matches: ListingSummary[] = [];
+  let hasCommittedMatches = false;
+  let conversationId: number | null = null;
+  if (viewer && viewer.id !== trip.user_id && trip.status === "active") {
+    const [shipments, existing] = await Promise.all([
+      userActiveShipments(viewer.id),
+      findConversation("trip", trip.id, viewer.id),
+    ]);
+    const onRoute = shipments.map(shipmentSummary).filter((match) => sameRoute(match, listing));
+    const committed = await committedListingIds(
+      "shipment",
+      onRoute.map((match) => match.id)
+    );
+    matches = onRoute.filter((match) => !committed.has(match.id));
+    hasCommittedMatches = committed.size > 0;
+    conversationId = existing;
+  }
+
+  return (
+    <ListingDetailView
+      listing={listing}
+      viewer={viewer}
+      ownerRating={ownerRating}
+      matches={matches}
+      hasCommittedMatches={hasCommittedMatches}
+      conversationId={conversationId}
+      deal={deal}
+    />
+  );
 }

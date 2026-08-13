@@ -18,7 +18,7 @@ export function MyListingRow({ listing }: { listing: ListingSummary }) {
         {listing.expired && listing.status === "active" ? (
           <Badge tone="amber">Огноо өнгөрсөн</Badge>
         ) : (
-          <StatusBadge status={listing.status} />
+          <StatusBadge status={listing.status} matched={listing.matched} />
         )}
         <ListingActions listing={listing} />
       </div>

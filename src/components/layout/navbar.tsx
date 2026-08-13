@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
-import { recentReviews, unreadCount } from "@/lib/data";
+import { recentReviews, unreadCount, unreadReviewCount } from "@/lib/data";
 import { btnPrimary, btnSm, ChatIcon, CountBadge, Logo } from "@/components/ui";
 import { SITE } from "@/constant/site";
 import { MobileNav } from "./mobile-nav";
 import { NotificationBell } from "./notification-bell";
+import { RealtimeSync } from "./realtime-sync";
 import { UserMenu } from "./user-menu";
 
 const navLinkCls =
@@ -12,9 +13,9 @@ const navLinkCls =
 
 export async function Navbar() {
   const user = await getCurrentUser();
-  const [unread, notifications] = user
-    ? await Promise.all([unreadCount(user.id), recentReviews(user.id, 5)])
-    : [0, []];
+  const [unread, notifications, unreadNotifications] = user
+    ? await Promise.all([unreadCount(user.id), recentReviews(user.id, 5), unreadReviewCount(user.id)])
+    : [0, [], 0];
 
   return (
     <header className="sticky top-0 z-20 border-b-2 border-ink/10 bg-paper/90 backdrop-blur">
@@ -47,7 +48,7 @@ export async function Navbar() {
                 <ChatIcon />
                 <CountBadge count={unread} className="absolute -right-1 -top-1" />
               </Link>
-              <NotificationBell reviews={notifications} />
+              <NotificationBell reviews={notifications} unread={unreadNotifications} />
               <UserMenu user={user} />
             </>
           ) : (
@@ -63,6 +64,8 @@ export async function Navbar() {
         </div>
 
         <MobileNav user={user} unread={unread} />
+
+        {user ? <RealtimeSync userId={user.id} /> : null}
       </div>
     </header>
   );

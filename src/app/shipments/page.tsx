@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { listShipments } from "@/lib/data";
+import { listShipments, withMatchFlags } from "@/lib/data";
 import { shipmentSummary } from "@/lib/listing";
 import { isCountryCode } from "@/constant/cities";
 import { ListingsView } from "@/views/listings";
@@ -20,7 +20,7 @@ export default async function ShipmentsPage({ searchParams }: PageProps<"/shipme
   return (
     <ListingsView
       type="shipment"
-      listings={shipments.map(shipmentSummary)}
+      listings={await withMatchFlags("shipment", shipments.map(shipmentSummary))}
       fromCountry={fromCountry}
       toCountry={toCountry}
     />

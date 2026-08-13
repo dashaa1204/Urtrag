@@ -1,8 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { AVATAR_ACCEPT, AVATAR_FORMATS_LABEL, MAX_AVATAR_LABEL } from "@/constant/avatar";
+import { useEffect, useRef, useState } from "react";
+import { AVATAR_ACCEPT, AVATAR_FORMATS_LABEL } from "@/constant/avatar";
+import { downscaleImage } from "@/lib/image";
 import { Avatar, FieldError } from "@/components/ui";
+
+/** Файлыг input дотор тавина — форм илгээхэд яг энэ файл явна. */
+function setInputFile(input: HTMLInputElement, file: File | null): void {
+  const transfer = new DataTransfer();
+  if (file) transfer.items.add(file);
+  input.files = transfer.files;
+}
 
 /**
  * Профайлын зураг сонгох. Сонгосон файлыг шууд урьдчилан харуулна —
@@ -19,11 +27,22 @@ export function AvatarPicker({
 }) {
   const [preview, setPreview] = useState<string | null>(null);
   const [remove, setRemove] = useState(false);
+  const [picked, setPicked] = useState<File | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Сонголт солигдох бүрд өмнөх blob-ыг чөлөөлнө
   useEffect(() => () => {
     if (preview) URL.revokeObjectURL(preview);
   }, [preview]);
+
+  // input дотор сонгосон файл нь бидний мэдэлгүй алга болж болно (жишээ нь dev
+  // үеийн Fast Refresh element-ийг дахин үүсгэхэд). Тэр үед урьдчилан харагдац
+  // нь үлддэг тул хэрэглэгч зурагтай мэт харагдаад чимээгүй зураггүй хадгалагдана.
+  // Рендер бүрийн дараа шалгаж, дутуу бол буцааж тавина.
+  useEffect(() => {
+    const input = inputRef.current;
+    if (input && picked && input.files?.length === 0) setInputFile(input, picked);
+  });
 
   const current = remove ? null : (preview ?? src);
 
@@ -44,20 +63,34 @@ export function AvatarPicker({
       <label className="cursor-pointer text-sm font-semibold text-stamp hover:underline">
         {src || preview ? "Зураг солих" : "Зураг оруулах"}
         <input
+          ref={inputRef}
           type="file"
           name="avatar"
           accept={AVATAR_ACCEPT}
           className="sr-only"
-          onChange={(event) => {
-            const file = event.target.files?.[0];
-            setPreview(file ? URL.createObjectURL(file) : null);
-            if (file) setRemove(false);
+          onChange={async (event) => {
+            const input = event.target;
+            const file = input.files?.[0];
+            if (!file) {
+              setPicked(null);
+              setPreview(null);
+              return;
+            }
+
+            // Утасны зураг олон МБ байдаг тул илгээхийн өмнө багасгаад,
+            // input дотор нь солино — форм жижигрүүлсэн файлыг нь явуулна.
+            const small = await downscaleImage(file);
+            if (small !== file) setInputFile(input, small);
+
+            setPicked(small);
+            setPreview(URL.createObjectURL(small));
+            setRemove(false);
           }}
         />
       </label>
 
       <p className="text-xs text-ink-soft/70">
-        {AVATAR_FORMATS_LABEL} — {MAX_AVATAR_LABEL} хүртэл. Хоосон бол нэрийн эхний үсэг гарна.
+        {AVATAR_FORMATS_LABEL} — томыг нь автоматаар багасгана. Хоосон бол нэрийн эхний үсэг гарна.
       </p>
 
       {src ? (
@@ -66,7 +99,17 @@ export function AvatarPicker({
             type="checkbox"
             name="avatar_remove"
             checked={remove}
-            onChange={(event) => setRemove(event.target.checked)}
+            onChange={(event) => {
+              const checked = event.target.checked;
+              setRemove(checked);
+              // Устгахаар сонгосон бол сонгосон файлаа орхино — эс бөгөөс
+              // server action нь устгахын оронд шинэ зургийг байршуулна.
+              if (checked) {
+                setPicked(null);
+                setPreview(null);
+                if (inputRef.current) setInputFile(inputRef.current, null);
+              }
+            }}
             className="size-4 cursor-pointer rounded border-ink/25 text-ink focus:ring-ink"
           />
           Зургийг устгах

@@ -19,11 +19,20 @@ export interface ListingSummary {
   id: number;
   href: string;
   editHref: string;
+  /** Чиглэл — ISO 3166-1 alpha-2. Хос зар нь яг ижил чиглэлтэй байх ёстой. */
+  fromCountry: string;
+  toCountry: string;
+  fromCity: string | null;
+  toCity: string | null;
   userId: UserId;
   userName: string;
+  /** Cloudinary public_id — харуулахын өмнө avatarUrl()-ээр дамжина. */
+  userAvatar: string | null;
   status: ListingStatus;
   /** Аялалын огноо өнгөрсөн эсэх (ачаанд үргэлж false). */
   expired: boolean;
+  /** Хэн нэгэнтэй тохирсон эсэх — data.ts → withMatchFlags тэмдэглэнэ. */
+  matched?: boolean;
   createdAt: Date;
   /** "Vienna → Ulaanbaatar" */
   title: string;
@@ -48,6 +57,26 @@ export function listingPath(type: ListingType, id: number): string {
   return `${type === "trip" ? "/trips" : "/shipments"}/${id}`;
 }
 
+/**
+ * Хос зарын төрөл. Аялалын зар руу ачаагаараа, ачааны зар руу аялалаараа
+ * хандана — хүсэлт илгээхэд энэ төрлийн зар өөрт нь байх ёстой.
+ */
+export function counterpartType(type: ListingType): ListingType {
+  return type === "trip" ? "shipment" : "trip";
+}
+
+/**
+ * Хос зар нь нэг чиглэлийнх байх ёстой. Хотоор биш УЛСААР харьцуулна —
+ * жагсаалтын шүүлтүүр ч мөн улсаар ажилладаг бөгөөд нэг улсын өөр хотод
+ * уулзаж ачаагаа өгөх нь бодит амьдрал дээр байнга тохиолддог.
+ */
+export function sameRoute(
+  a: { fromCountry: string; toCountry: string },
+  b: { fromCountry: string; toCountry: string }
+): boolean {
+  return a.fromCountry === b.fromCountry && a.toCountry === b.toCountry;
+}
+
 function shared(type: ListingType, listing: Trip | Shipment) {
   const href = listingPath(type, listing.id);
   return {
@@ -55,8 +84,13 @@ function shared(type: ListingType, listing: Trip | Shipment) {
     id: listing.id,
     href,
     editHref: `${href}/edit`,
+    fromCountry: listing.from_country,
+    toCountry: listing.to_country,
+    fromCity: listing.from_city,
+    toCity: listing.to_city,
     userId: listing.user_id,
     userName: listing.user_name,
+    userAvatar: listing.user_avatar,
     status: listing.status,
     createdAt: listing.created_at,
     title: routeTitle(listing),

@@ -96,3 +96,12 @@ export function BellIcon({ className = "h-5 w-5" }: IconProps) {
     </svg>
   );
 }
+
+export function SendIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...baseProps} className={className}>
+      <path d="M4.7 4.3 20 12 4.7 19.7 7 12Z" />
+      <path d="M7 12h13" />
+    </svg>
+  );
+}

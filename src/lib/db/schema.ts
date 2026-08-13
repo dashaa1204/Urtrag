@@ -9,12 +9,18 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
 export const listingTypeEnum = pgEnum("listing_type", ["trip", "shipment"]);
 export const listingStatusEnum = pgEnum("listing_status", ["active", "closed"]);
+/**
+ * Хүсэлтийн төлөв. pending — эзэн хараахан шийдээгүй, accepted — тохирсон
+ * (хоёр зар хоёулаа "эзэнтэй" болно), cancelled — татгалзсан эсвэл цуцалсан.
+ */
+export const dealStatusEnum = pgEnum("deal_status", ["pending", "accepted", "cancelled"]);
 export const verificationStatusEnum = pgEnum("verification_status", ["pending", "approved", "rejected"]);
 
 /**
@@ -123,6 +129,17 @@ export const conversations = pgTable(
     id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
     listingType: listingTypeEnum("listing_type").notNull(),
     listingId: integer("listing_id").notNull(),
+    /**
+     * Яриа эхлүүлэгчийн хос зар — зарын ЭСРЭГ төрөл (аялал ↔ ачаа). Хүсэлт
+     * илгээхийн тулд өөрийн зараа сонгодог тул шинэ яриа бүрд бөглөгдөнө.
+     *
+     * FK биш: хоёр өөр хүснэгт рүү заах тул уншихдаа байгаа эсэхийг шалгана.
+     * Хуучин яриануудад NULL.
+     */
+    matchedListingId: integer("matched_listing_id"),
+    /** Хэлцлийн төлөв. Зарын эзэн шийднэ, дараа нь хоёр тал хүчингүй болгож чадна. */
+    dealStatus: dealStatusEnum("deal_status").notNull().default("pending"),
+    dealDecidedAt: timestamp("deal_decided_at", { withTimezone: true }),
     starterId: uuid("starter_id")
       .notNull()
       .references(() => profiles.id, { onDelete: "cascade" }),
@@ -135,6 +152,18 @@ export const conversations = pgTable(
     unique("conversations_listing_starter_key").on(t.listingType, t.listingId, t.starterId),
     index("idx_conversations_starter").on(t.starterId),
     index("idx_conversations_owner").on(t.ownerId),
+    // Зар бүр НЭГ л хэлцэлтэй байна. Хоёр хүсэлтийг зэрэг зөвшөөрөх гэвэл
+    // өгөгдлийн сан өөрөө зогсооно — зөвхөн кодын шалгалтад найдвал зэрэгцээ
+    // хоёр товшилт хоёуланг нь өнгөрөөж мэднэ.
+    uniqueIndex("conversations_accepted_listing_key")
+      .on(t.listingType, t.listingId)
+      .where(sql`deal_status = 'accepted'`),
+    // Эхлүүлэгчийн хос зар ч мөн адил. listing_type-г оруулсан нь ач холбогдолтой:
+    // matched_listing_id нь эсрэг төрлийн зарын id тул ижил тоо аялал, ачаа
+    // хоёуланд таарч болно.
+    uniqueIndex("conversations_accepted_match_key")
+      .on(t.listingType, t.matchedListingId)
+      .where(sql`deal_status = 'accepted' and matched_listing_id is not null`),
   ]
 );
 
@@ -171,6 +200,8 @@ export const reviews = pgTable(
     rating: integer("rating").notNull(),
     comment: text("comment"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    /** Үнэлүүлсэн хүн мэдэгдлийн хонхоо нээж үзсэн хугацаа. */
+    readAt: timestamp("read_at", { withTimezone: true }),
   },
   (t) => [
     unique("reviews_conversation_reviewer_key").on(t.conversationId, t.reviewerId),

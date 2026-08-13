@@ -7,7 +7,21 @@ import { RouteFields } from "@/views/listings/components";
 import { LISTING_COPY } from "@/constant/listings";
 import type { Shipment } from "@/types";
 
-export function ShipmentForm({ shipment }: { shipment?: Shipment }) {
+/**
+ * next — хадгалсны дараа буцаж очих дотоод зам, from/to — урьдчилж бөглөх хот
+ * (хоёулаа аялалын зар дээрээс "ачаа оруулах" гэж ирэхэд ирнэ).
+ */
+export function ShipmentForm({
+  shipment,
+  next,
+  from,
+  to,
+}: {
+  shipment?: Shipment;
+  next?: string;
+  from?: string;
+  to?: string;
+}) {
   const isEdit = shipment !== undefined;
   const [state, action, pending] = useActionState(isEdit ? updateShipment : createShipment, undefined);
   const values = state?.values;
@@ -16,12 +30,13 @@ export function ShipmentForm({ shipment }: { shipment?: Shipment }) {
   return (
     <form action={action} className="flex flex-col gap-4">
       {isEdit ? <input type="hidden" name="id" value={shipment.id} /> : null}
+      {next ? <input type="hidden" name="next" value={next} /> : null}
 
       <FormError message={state?.error} />
 
       <RouteFields
-        from={values?.from_city ?? shipment?.from_city ?? ""}
-        to={values?.to_city ?? shipment?.to_city ?? ""}
+        from={values?.from_city ?? shipment?.from_city ?? from ?? ""}
+        to={values?.to_city ?? shipment?.to_city ?? to ?? ""}
         fromError={errors?.from_city}
         toError={errors?.to_city}
       />

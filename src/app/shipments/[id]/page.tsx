@@ -1,8 +1,15 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getShipment, getUserRating } from "@/lib/data";
+import {
+  committedListingIds,
+  findConversation,
+  getListingDeal,
+  getShipment,
+  getUserRating,
+  userActiveTrips,
+} from "@/lib/data";
 import { getCurrentUser } from "@/lib/auth";
-import { shipmentSummary } from "@/lib/listing";
+import { sameRoute, shipmentSummary, tripSummary, type ListingSummary } from "@/lib/listing";
 import { formatDate, formatKg, routeTitle } from "@/lib/format";
 import { SITE } from "@/constant/site";
 import { ListingDetailView } from "@/views/listings";
@@ -35,8 +42,43 @@ export default async function ShipmentDetailPage({ params }: PageProps<"/shipmen
   const shipment = await getShipment(shipmentId);
   if (!shipment) notFound();
 
-  const [viewer, ownerRating] = await Promise.all([getCurrentUser(), getUserRating(shipment.user_id)]);
+  const [viewer, ownerRating, deal] = await Promise.all([
+    getCurrentUser(),
+    getUserRating(shipment.user_id),
+    getListingDeal("shipment", shipment.id),
+  ]);
+
+  const listing = shipmentSummary(shipment);
+
+  // Ачааны зар руу аялалаараа хандана — үзэгчийн ижил чиглэлийн, өөр хүнтэй
+  // тохироогүй аялалуудыг сонгуулахаар бэлдэнэ.
+  let matches: ListingSummary[] = [];
+  let hasCommittedMatches = false;
+  let conversationId: number | null = null;
+  if (viewer && viewer.id !== shipment.user_id && shipment.status === "active") {
+    const [trips, existing] = await Promise.all([
+      userActiveTrips(viewer.id),
+      findConversation("shipment", shipment.id, viewer.id),
+    ]);
+    const onRoute = trips.map(tripSummary).filter((match) => sameRoute(match, listing));
+    const committed = await committedListingIds(
+      "trip",
+      onRoute.map((match) => match.id)
+    );
+    matches = onRoute.filter((match) => !committed.has(match.id));
+    hasCommittedMatches = committed.size > 0;
+    conversationId = existing;
+  }
+
   return (
-    <ListingDetailView listing={shipmentSummary(shipment)} viewer={viewer} ownerRating={ownerRating} />
+    <ListingDetailView
+      listing={listing}
+      viewer={viewer}
+      ownerRating={ownerRating}
+      matches={matches}
+      hasCommittedMatches={hasCommittedMatches}
+      conversationId={conversationId}
+      deal={deal}
+    />
   );
 }

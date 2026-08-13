@@ -19,8 +19,10 @@ export function Badge({ tone = "slate", children }: { tone?: keyof typeof toneCl
   );
 }
 
-export function StatusBadge({ status }: { status: ListingStatus }) {
-  return status === "active" ? <Badge tone="green">Идэвхтэй</Badge> : <Badge tone="slate">Хаагдсан</Badge>;
+/** matched — зар хүчинтэй ч аль хэдийн нэг хүсэлттэй тохирсон. */
+export function StatusBadge({ status, matched }: { status: ListingStatus; matched?: boolean }) {
+  if (status !== "active") return <Badge tone="slate">Хаагдсан</Badge>;
+  return matched ? <Badge tone="amber">Тохирсон</Badge> : <Badge tone="green">Идэвхтэй</Badge>;
 }
 
 const countToneCls = {
