@@ -82,6 +82,7 @@ export function MessageList({
             <MessageBubble
               message={message}
               isMine={message.sender_id === currentUserId}
+              isPending={message.id < 0}
               isFirstOfGroup={isFirstOfGroup}
               isLastOfGroup={isLastOfGroup}
               otherAvatar={otherAvatar}

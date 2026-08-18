@@ -3,7 +3,10 @@
 import { useActionState } from "react";
 import { createShipment, updateShipment } from "@/lib/actions";
 import { FieldRow, FormError, SubmitButton, TextAreaField, TextField } from "@/components/ui";
-import { RouteFields } from "@/views/listings/components";
+// Баррелаар биш, шууд: барел дотор зөвхөн серверт ажиллах модуль
+// (ListingContact → lib/nav → lib/public-id) байгаа тул клиент компонент
+// түүгээр дамжвал бүгд браузарын багц руу чирэгдэнэ.
+import { RouteFields } from "@/views/listings/components/route-fields";
 import { LISTING_COPY } from "@/constant/listings";
 import type { Shipment } from "@/types";
 

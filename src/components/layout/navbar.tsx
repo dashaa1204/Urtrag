@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, isAdmin } from "@/lib/auth";
 import { recentReviews, unreadCount, unreadReviewCount } from "@/lib/data";
 import { btnPrimary, btnSm, ChatIcon, CountBadge, Logo } from "@/components/ui";
 import { SITE } from "@/constant/site";
@@ -35,6 +35,13 @@ export async function Navbar() {
           <Link href="/shipments" className={navLinkCls}>
             Ачаанууд
           </Link>
+          {/* Өөрийн зараа хянах зам нь профайлын цэсэнд нуугдахгүй — нэвтэрсэн
+              хүнд хамгийн олон дахин хэрэгтэй холбоос. */}
+          {user ? (
+            <Link href="/my" className={navLinkCls}>
+              Миний хуудас
+            </Link>
+          ) : null}
         </nav>
 
         <div className="ml-auto hidden items-center gap-2 md:flex">
@@ -49,7 +56,7 @@ export async function Navbar() {
                 <CountBadge count={unread} className="absolute -right-1 -top-1" />
               </Link>
               <NotificationBell reviews={notifications} unread={unreadNotifications} />
-              <UserMenu user={user} />
+              <UserMenu user={user} admin={isAdmin(user)} />
             </>
           ) : (
             <>
@@ -63,7 +70,7 @@ export async function Navbar() {
           )}
         </div>
 
-        <MobileNav user={user} unread={unread} />
+        <MobileNav user={user} unread={unread} admin={isAdmin(user)} />
 
         {user ? <RealtimeSync userId={user.id} /> : null}
       </div>

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { FormError } from "@/components/ui";
-import { AuthCard, LoginForm } from "./components";
+import { AuthCard, GoogleAuth, LoginForm } from "./components";
 
 export default function LoginView({ next, error }: { next?: string; error?: string }) {
   return (
@@ -31,6 +31,7 @@ export default function LoginView({ next, error }: { next?: string; error?: stri
           <FormError message={error} />
         </div>
       ) : null}
+      <GoogleAuth next={next} />
       <LoginForm next={next} />
     </AuthCard>
   );

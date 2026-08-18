@@ -6,9 +6,9 @@ import {
   listUserReviews,
   myShipments,
   myTrips,
-  withMatchFlags,
+  shipmentSummaries,
+  tripSummaries,
 } from "@/lib/data";
-import { shipmentSummary, tripSummary } from "@/lib/listing";
 import { parseFilter, parseTab } from "@/constant/dashboard";
 import DashboardView from "@/views/my/dashboard-view";
 
@@ -31,8 +31,8 @@ export default async function MyPage({ searchParams }: PageProps<"/my">) {
       user={user}
       rating={rating}
       reviews={reviews}
-      trips={await withMatchFlags("trip", trips.map(tripSummary))}
-      shipments={await withMatchFlags("shipment", shipments.map(shipmentSummary))}
+      trips={await tripSummaries(trips)}
+      shipments={await shipmentSummaries(shipments)}
       identityVerified={verification?.status === "approved"}
       tab={parseTab(tab)}
       filter={parseFilter(status)}

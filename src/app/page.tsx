@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { latestShipments, latestTrips, withMatchFlags } from "@/lib/data";
-import { shipmentSummary, tripSummary } from "@/lib/listing";
+import { latestShipments, latestTrips, shipmentSummaries, tripSummaries } from "@/lib/data";
 import { SITE } from "@/constant/site";
 import HomeView from "@/views/home/home-view";
 
@@ -28,8 +27,8 @@ const jsonLd = {
 export default async function HomePage() {
   const [trips, shipments] = await Promise.all([latestTrips(4), latestShipments(4)]);
   const [tripCards, shipmentCards] = await Promise.all([
-    withMatchFlags("trip", trips.map(tripSummary)),
-    withMatchFlags("shipment", shipments.map(shipmentSummary)),
+    tripSummaries(trips),
+    shipmentSummaries(shipments),
   ]);
 
   return (

@@ -85,6 +85,27 @@
       "when": 1786630039196,
       "tag": "0011_conversation_deal",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1786781935715,
+      "tag": "0012_trip_capacity",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1786788216022,
+      "tag": "0013_deal_accepted_at",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1786972801758,
+      "tag": "0014_admin_actions",
+      "breakpoints": true
     }
   ]
 }

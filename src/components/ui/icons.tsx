@@ -97,6 +97,33 @@ export function BellIcon({ className = "h-5 w-5" }: IconProps) {
   );
 }
 
+export function ShareIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...baseProps} className={className}>
+      <path d="M12 15V3" />
+      <path d="m8 7 4-4 4 4" />
+      <path d="M4 14v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5" />
+    </svg>
+  );
+}
+
+export function LinkIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...baseProps} className={className}>
+      <path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7" />
+      <path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7" />
+    </svg>
+  );
+}
+
+export function CheckIcon({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg {...baseProps} className={className}>
+      <path d="m4 12.5 5 5L20 6.5" />
+    </svg>
+  );
+}
+
 export function SendIcon({ className = "h-5 w-5" }: IconProps) {
   return (
     <svg {...baseProps} className={className}>

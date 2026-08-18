@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { listingIdFromSlug } from "@/lib/nav";
 import { requireUser } from "@/lib/auth";
 import { getShipment } from "@/lib/data";
 import { ListingFormView } from "@/views/listings";
@@ -9,8 +10,8 @@ export const metadata: Metadata = { title: "Ачааны хүсэлт засах
 
 export default async function ShipmentEditPage({ params }: PageProps<"/shipments/[id]/edit">) {
   const { id } = await params;
-  const shipmentId = Number(id);
-  if (!Number.isInteger(shipmentId)) notFound();
+  const shipmentId = listingIdFromSlug("shipment", id);
+  if (shipmentId === null) notFound();
 
   const user = await requireUser();
   const shipment = await getShipment(shipmentId);

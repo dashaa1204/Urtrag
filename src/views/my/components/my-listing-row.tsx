@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ListingSummary } from "@/lib/listing";
-import { Badge, PanelRow, StatusBadge } from "@/components/ui";
+import { PanelRow, StatusBadge } from "@/components/ui";
 import { ListingActions } from "./listing-actions";
 
 /** "Миний зар" жагсаалтын нэг мөр. */
@@ -15,11 +15,12 @@ export function MyListingRow({ listing }: { listing: ListingSummary }) {
       </Link>
 
       <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
-        {listing.expired && listing.status === "active" ? (
-          <Badge tone="amber">Огноо өнгөрсөн</Badge>
-        ) : (
-          <StatusBadge status={listing.status} matched={listing.matched} />
-        )}
+        <StatusBadge
+          status={listing.status}
+          matched={listing.matched}
+          matchedLabel={listing.fullLabel}
+          expired={listing.expired}
+        />
         <ListingActions listing={listing} />
       </div>
     </PanelRow>

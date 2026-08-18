@@ -11,11 +11,11 @@ import {
   trips,
 } from "./db/schema";
 import { formatDate, formatKg } from "./format";
-import { counterpartType, type ListingSummary } from "./listing";
+import { conversationPath } from "./nav";
+import { fitsCapacity, shipmentSummary, todayIso, tripSummary, type ListingSummary } from "./listing";
 import type {
   Conversation,
   ConversationPreview,
-  DealStatus,
   ListingDeal,
   ListingType,
   Message,
@@ -30,12 +30,11 @@ import type {
   VerificationStatus,
 } from "@/types";
 
-function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-/** Views нь snake_case талбар хүлээдэг тул сонголтуудыг тэр хэлбэрээр нь буцаана. */
-const tripFields = {
+/**
+ * Views нь snake_case талбар хүлээдэг тул сонголтуудыг тэр хэлбэрээр нь буцаана.
+ * Хянагчийн жагсаалт (lib/admin-data.ts) мөн эдгээрийг дахин ашиглана.
+ */
+export const tripFields = {
   id: trips.id,
   user_id: trips.userId,
   from_country: trips.fromCountry,
@@ -52,7 +51,7 @@ const tripFields = {
   user_avatar: profiles.avatarPath,
 };
 
-const shipmentFields = {
+export const shipmentFields = {
   id: shipments.id,
   user_id: shipments.userId,
   from_country: shipments.fromCountry,
@@ -152,6 +151,17 @@ export async function myTrips(userId: UserId): Promise<Trip[]> {
     .orderBy(desc(trips.createdAt));
 }
 
+/** "ok" — хадгалагдсан, "missing" — олдсонгүй, тоо — захиалагдсан жин хэтэрсэн. */
+export type TripUpdateResult = "ok" | "missing" | { bookedKg: number };
+
+/**
+ * Аялалын зарыг шинэчилнэ.
+ *
+ * Сул жинг аль хэдийн ЗАХИАЛАГДСАН хэмжээнээс доош болгож болохгүй: тэгвэл
+ * зар нь багтаамжаасаа хэтэрсэн ачаа үүрсэн хэвээр "дүүрсэн" гэж харагдаж,
+ * сул жин нь сөрөг болно. acceptDeal-тай ижил аргаар мөрийг түгжиж шалгана —
+ * зэрэгцээ зөвшөөрөл ба засвар хоёр цувран гүйцэтгэгдэнэ.
+ */
 export async function updateTrip(
   id: number,
   userId: UserId,
@@ -165,22 +175,34 @@ export async function updateTrip(
     pricePerKg: number;
     notes: string | null;
   }
-): Promise<boolean> {
-  const rows = await db
-    .update(trips)
-    .set({
-      fromCountry: input.fromCountry,
-      toCountry: input.toCountry,
-      fromCity: input.fromCity,
-      toCity: input.toCity,
-      travelDate: input.travelDate,
-      availableKg: input.availableKg,
-      pricePerKg: input.pricePerKg,
-      notes: input.notes,
-    })
-    .where(and(eq(trips.id, id), eq(trips.userId, userId)))
-    .returning({ id: trips.id });
-  return rows.length > 0;
+): Promise<TripUpdateResult> {
+  return db.transaction(async (tx) => {
+    const [existing] = await tx
+      .select({ id: trips.id })
+      .from(trips)
+      .where(and(eq(trips.id, id), eq(trips.userId, userId)))
+      .limit(1)
+      .for("update");
+    if (!existing) return "missing";
+
+    const booked = await bookedKgIn(tx, id);
+    if (!fitsCapacity(booked, input.availableKg)) return { bookedKg: booked };
+
+    await tx
+      .update(trips)
+      .set({
+        fromCountry: input.fromCountry,
+        toCountry: input.toCountry,
+        fromCity: input.fromCity,
+        toCity: input.toCity,
+        travelDate: input.travelDate,
+        availableKg: input.availableKg,
+        pricePerKg: input.pricePerKg,
+        notes: input.notes,
+      })
+      .where(eq(trips.id, id));
+    return "ok";
+  });
 }
 
 // ---------- Ачаа ----------
@@ -294,49 +316,93 @@ export async function updateShipment(
 
 // ---------- Зар хаах / нээх / устгах ----------
 
+/**
+ * userId нь null бол эзний шалгалтгүй ажиллана — зөвхөн хянагчийн үйлдэлд
+ * зориулагдсан бөгөөд эрхийг нь ДУУДАГЧ тал (requireAdmin) шалгасан байх ёстой.
+ * Хэрэглэгчийн зүгээс ирэх бүх дуудлага өөрийн id-г дамжуулсан хэвээр байна.
+ */
 async function setListingStatus(
   type: ListingType,
   id: number,
-  userId: UserId,
+  userId: UserId | null,
   status: "active" | "closed"
 ): Promise<boolean> {
   if (type === "trip") {
     const rows = await db
       .update(trips)
       .set({ status })
-      .where(and(eq(trips.id, id), eq(trips.userId, userId)))
+      .where(and(eq(trips.id, id), userId ? eq(trips.userId, userId) : undefined))
       .returning({ id: trips.id });
     return rows.length > 0;
   }
   const rows = await db
     .update(shipments)
     .set({ status })
-    .where(and(eq(shipments.id, id), eq(shipments.userId, userId)))
+    .where(and(eq(shipments.id, id), userId ? eq(shipments.userId, userId) : undefined))
     .returning({ id: shipments.id });
   return rows.length > 0;
 }
 
-export function closeListing(type: ListingType, id: number, userId: UserId): Promise<boolean> {
+export function closeListing(type: ListingType, id: number, userId: UserId | null): Promise<boolean> {
   return setListingStatus(type, id, userId, "closed");
 }
 
-export function reopenListing(type: ListingType, id: number, userId: UserId): Promise<boolean> {
+export function reopenListing(type: ListingType, id: number, userId: UserId | null): Promise<boolean> {
   return setListingStatus(type, id, userId, "active");
 }
 
-export async function deleteListing(type: ListingType, id: number, userId: UserId): Promise<boolean> {
-  if (type === "trip") {
-    const rows = await db
-      .delete(trips)
-      .where(and(eq(trips.id, id), eq(trips.userId, userId)))
-      .returning({ id: trips.id });
-    return rows.length > 0;
-  }
-  const rows = await db
-    .delete(shipments)
-    .where(and(eq(shipments.id, id), eq(shipments.userId, userId)))
-    .returning({ id: shipments.id });
-  return rows.length > 0;
+export interface DeletedListing {
+  /** Цуцлагдсанаар дахин сул болсон хос заруудын id. */
+  freedIds: number[];
+  /** Хөндөгдсөн яриа — хоёр тал нь төлөвийн өөрчлөлтийг харах ёстой. */
+  conversationIds: number[];
+}
+
+/**
+ * Зарыг устгаад түүнд холбогдсон хэлцлүүдийг цуцална.
+ *
+ * conversations.listing_id нь FK БИШ (аялал, ачаа хоёр өөр хүснэгт рүү заадаг)
+ * тул cascade ажиллахгүй. Цуцлахгүй бол устсан зартай "тохирсон" хэлцэл үлдэж,
+ * нөгөө талын зар үүрд түгжигдэнэ — эзэн нь өөрөө ярианд ороод цуцлахаас өөр
+ * гарцгүй болно. Хүлээгдэж буй хүсэлтийг ч цуцлана: устсан зар дээр зөвшөөрөх
+ * товч ажиллахгүй тул тэр нь мухардмал төлөв.
+ *
+ * userId нь null бол эзний шалгалтгүй — setListingStatus-тэй ижил дүрэм.
+ */
+export async function deleteListing(
+  type: ListingType,
+  id: number,
+  userId: UserId | null
+): Promise<DeletedListing | null> {
+  return db.transaction(async (tx) => {
+    const deleted =
+      type === "trip"
+        ? await tx
+            .delete(trips)
+            .where(and(eq(trips.id, id), userId ? eq(trips.userId, userId) : undefined))
+            .returning({ id: trips.id })
+        : await tx
+            .delete(shipments)
+            .where(and(eq(shipments.id, id), userId ? eq(shipments.userId, userId) : undefined))
+            .returning({ id: shipments.id });
+    if (deleted.length === 0) return null;
+
+    // Устсан зар нь ярианы "эзэн" эсвэл "хос зар" аль ч үүрэгтэй байсан
+    // generated багана хоёуланг нь хамарна.
+    const own = type === "trip" ? conversations.tripId : conversations.shipmentId;
+    const other = type === "trip" ? conversations.shipmentId : conversations.tripId;
+
+    const affected = await tx
+      .update(conversations)
+      .set({ dealStatus: "cancelled", dealDecidedAt: new Date() })
+      .where(and(eq(own, id), ne(conversations.dealStatus, "cancelled")))
+      .returning({ id: conversations.id, freed: other });
+
+    return {
+      freedIds: affected.map((row) => row.freed).filter((v): v is number => v !== null),
+      conversationIds: affected.map((row) => row.id),
+    };
+  });
 }
 
 // ---------- Харилцан яриа ба мессеж ----------
@@ -390,95 +456,175 @@ const conversationFields = {
   listing_type: conversations.listingType,
   listing_id: conversations.listingId,
   matched_listing_id: conversations.matchedListingId,
+  trip_id: conversations.tripId,
+  shipment_id: conversations.shipmentId,
   deal_status: conversations.dealStatus,
   deal_decided_at: conversations.dealDecidedAt,
+  accepted_at: conversations.acceptedAt,
   starter_id: conversations.starterId,
   owner_id: conversations.ownerId,
   created_at: conversations.createdAt,
 };
 
 /**
- * Зар нь хоёр үүргээр хэлцэлд орж болно: өөр дээр нь хүсэлт ирээд зөвшөөрсөн,
- * эсвэл эзэн нь өөр зар руу хандахдаа үүнийгээ хос зар болгож сонгосон.
- * Хоёуланг нь хамарсан нөхцөл — доорх хоёр функц үүнийг хуваалцана.
+ * Зар дээр тохирсон хэлцлүүд. Ачаанд хамгийн ихдээ нэг (unique index барина),
+ * аялалд сул жин хүрэлцэх хүртэл олон байна.
+ *
+ * Хайлт нь generated багана дээр явна — зар нь ярианы "эзэн" эсвэл "хос зар"
+ * аль ч үүрэгтэй байсан ижил олдоно.
  */
-function acceptedFor(type: ListingType, ids: number[]) {
-  return and(
-    eq(conversations.dealStatus, "accepted"),
-    or(
-      and(eq(conversations.listingType, type), inArray(conversations.listingId, ids)),
-      and(
-        eq(conversations.listingType, counterpartType(type)),
-        inArray(conversations.matchedListingId, ids)
-      )
-    )
-  );
-}
-
-/**
- * Зар дээр тохирсон хэлцэл. Зар бүр дээр зөвхөн НЭГ байж чадахыг
- * conversations_accepted_* partial unique index-үүд баталгаажуулна.
- */
-export const getListingDeal = cache(
-  async (type: ListingType, listingId: number): Promise<ListingDeal | null> => {
-    const [row] = await db
+export const listingDeals = cache(
+  async (type: ListingType, listingId: number): Promise<ListingDeal[]> => {
+    const column = type === "trip" ? conversations.tripId : conversations.shipmentId;
+    return db
       .select({
         conversation_id: conversations.id,
         starter_id: conversations.starterId,
         owner_id: conversations.ownerId,
         decided_at: conversations.dealDecidedAt,
+        shipment_kg: shipments.weightKg,
       })
       .from(conversations)
-      .where(acceptedFor(type, [listingId]))
-      .limit(1);
-    return row ?? null;
+      // Ачаа нь устсан байж болно (listing_id нь FK биш) — тийм хэлцлийг
+      // хаяхгүй, зөвхөн жингүйгээр харуулна.
+      .leftJoin(shipments, eq(shipments.id, conversations.shipmentId))
+      .where(and(eq(conversations.dealStatus, "accepted"), eq(column, listingId)))
+      .orderBy(conversations.dealDecidedAt);
   }
 );
 
-/** Өгсөн заруудаас аль хэдийн тохирчихсоныг нь ялгана (сонголтоос хасахад). */
-export async function committedListingIds(type: ListingType, ids: number[]): Promise<Set<number>> {
-  if (ids.length === 0) return new Set();
+/** Аялал бүр дээр тохирсон ачаанууд эзэлсэн нийт жин. */
+export async function tripLoads(tripIds: number[]): Promise<Map<number, number>> {
+  if (tripIds.length === 0) return new Map();
   const rows = await db
     .select({
-      listingType: conversations.listingType,
-      listingId: conversations.listingId,
-      matchedId: conversations.matchedListingId,
+      tripId: conversations.tripId,
+      booked: sql<number>`COALESCE(SUM(${shipments.weightKg}), 0)::float8`,
     })
     .from(conversations)
-    .where(acceptedFor(type, ids));
+    // innerJoin: устсан ачаа багтаамж эзлэхгүй — жин нь автоматаар чөлөөлөгдөнө.
+    .innerJoin(shipments, eq(shipments.id, conversations.shipmentId))
+    .where(and(eq(conversations.dealStatus, "accepted"), inArray(conversations.tripId, tripIds)))
+    .groupBy(conversations.tripId);
 
-  const committed = new Set<number>();
+  const loads = new Map<number, number>();
   for (const row of rows) {
-    if (row.listingType === type) committed.add(row.listingId);
-    else if (row.matchedId !== null) committed.add(row.matchedId);
+    if (row.tripId !== null) loads.set(row.tripId, row.booked);
   }
-  return committed;
+  return loads;
+}
+
+/** Нэг аялалын захиалагдсан жин. */
+export async function tripBookedKg(tripId: number): Promise<number> {
+  return (await tripLoads([tripId])).get(tripId) ?? 0;
+}
+
+/** Өгсөн ачаануудаас аль хэдийн аялагчтай тохирчихсоныг нь ялгана. */
+export async function committedShipmentIds(ids: number[]): Promise<Set<number>> {
+  if (ids.length === 0) return new Set();
+  const rows = await db
+    .select({ id: conversations.shipmentId })
+    .from(conversations)
+    .where(and(eq(conversations.dealStatus, "accepted"), inArray(conversations.shipmentId, ids)));
+  return new Set(rows.map((row) => row.id).filter((id): id is number => id !== null));
+}
+
+/** Жагсаалтын заруудыг дэлгэцийн хэлбэрт хөрвүүлнэ — багтаамжийг нэг багц асуулгаар. */
+export async function tripSummaries(rows: Trip[]): Promise<ListingSummary[]> {
+  const loads = await tripLoads(rows.map((trip) => trip.id));
+  return rows.map((trip) => tripSummary(trip, loads.get(trip.id) ?? 0));
 }
 
 /**
- * Жагсаалтын заруудад "Тохирсон" шошго тавихад. Тохирсон зарыг жагсаалтаас
- * хасахгүй — хэрэглэгч цөөтэй үед сайт хоосон харагдах нь илүү муу, бас
- * тохиролцоо цуцлагдвал тэр зар дахин хэрэгтэй болно.
+ * Тохирсон зарыг жагсаалтаас хасахгүй — хэрэглэгч цөөтэй үед сайт хоосон
+ * харагдах нь илүү муу, бас тохиролцоо цуцлагдвал тэр зар дахин хэрэгтэй болно.
  */
-export async function withMatchFlags(
-  type: ListingType,
-  listings: ListingSummary[]
-): Promise<ListingSummary[]> {
-  const committed = await committedListingIds(
-    type,
-    listings.map((listing) => listing.id)
-  );
-  if (committed.size === 0) return listings;
-  return listings.map((listing) =>
-    committed.has(listing.id) ? { ...listing, matched: true } : listing
-  );
+export async function shipmentSummaries(rows: Shipment[]): Promise<ListingSummary[]> {
+  const committed = await committedShipmentIds(rows.map((shipment) => shipment.id));
+  return rows.map((shipment) => shipmentSummary(shipment, committed.has(shipment.id)));
 }
 
-/** Хэлцлийн шийдвэр. Давхар тохиролтыг partial unique index зогсооно. */
-export async function setDealStatus(conversationId: number, status: DealStatus): Promise<void> {
+/** Транзакцын хүрээ — багтаамжийн шалгалтууд ижил түгжээн дор явах ёстой. */
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+/**
+ * Тухайн аялалд захиалагдсан нийт жин, транзакц дотор.
+ *
+ * exceptConversationId — өөрийгөө хасах (аль хэдийн зөвшөөрсөн хэлцлийг дахин
+ * зөвшөөрөхөд жин нь хоёр дахин тоологдохгүй).
+ */
+async function bookedKgIn(tx: Tx, tripId: number, exceptConversationId?: number): Promise<number> {
+  const [row] = await tx
+    .select({ booked: sql<number>`COALESCE(SUM(${shipments.weightKg}), 0)::float8` })
+    .from(conversations)
+    .innerJoin(shipments, eq(shipments.id, conversations.shipmentId))
+    .where(
+      and(
+        eq(conversations.dealStatus, "accepted"),
+        eq(conversations.tripId, tripId),
+        exceptConversationId === undefined
+          ? undefined
+          : ne(conversations.id, exceptConversationId)
+      )
+    );
+  return row?.booked ?? 0;
+}
+
+export type AcceptResult = "ok" | "full" | "missing";
+
+/**
+ * Хэлцлийг зөвшөөрнө — аялалын сул жинд багтаж байвал.
+ *
+ * Багтаамжийг индексээр илэрхийлэх боломжгүй тул транзакц дотор аялалын мөрийг
+ * FOR UPDATE-ээр түгжинэ: нэг аялал дээр зэрэг ирсэн хоёр зөвшөөрөл цувран
+ * гүйцэтгэгдэж, нийлбэр хэтрэхгүй.
+ *
+ * Ачаа өөр аялагчтай тохирчихсон бол conversations_accepted_shipment_key
+ * алдаа өгч транзакц бүхэлдээ буцна — дуудагч тал нь барьж авна.
+ */
+export async function acceptDeal(
+  conversationId: number,
+  tripId: number,
+  shipmentId: number
+): Promise<AcceptResult> {
+  return db.transaction(async (tx) => {
+    const [trip] = await tx
+      .select({ availableKg: trips.availableKg })
+      .from(trips)
+      .where(eq(trips.id, tripId))
+      .limit(1)
+      .for("update");
+    const [shipment] = await tx
+      .select({ weightKg: shipments.weightKg })
+      .from(shipments)
+      .where(eq(shipments.id, shipmentId))
+      .limit(1);
+    if (!trip || !shipment) return "missing";
+
+    // Өөрийгөө хасна: аль хэдийн зөвшөөрсөн хэлцлийг дахин зөвшөөрөхөд
+    // жин нь хоёр дахин тоологдохгүй.
+    const remaining = trip.availableKg - (await bookedKgIn(tx, tripId, conversationId));
+    if (!fitsCapacity(shipment.weightKg, remaining)) return "full";
+
+    await tx
+      .update(conversations)
+      .set({
+        dealStatus: "accepted",
+        dealDecidedAt: new Date(),
+        // Анхны тохирлын хугацааг хадгална — цуцлаад дахин тохирвол ч
+        // хамгийн эхний огноо үлдэнэ.
+        acceptedAt: sql`coalesce(${conversations.acceptedAt}, now())`,
+      })
+      .where(eq(conversations.id, conversationId));
+    return "ok";
+  });
+}
+
+/** Хэлцлийг цуцлана — ачаа сул болж, аялалын жин чөлөөлөгдөнө. */
+export async function cancelDeal(conversationId: number): Promise<void> {
   await db
     .update(conversations)
-    .set({ dealStatus: status, dealDecidedAt: new Date() })
+    .set({ dealStatus: "cancelled", dealDecidedAt: new Date() })
     .where(eq(conversations.id, conversationId));
 }
 
@@ -567,6 +713,7 @@ export async function listConversations(userId: UserId): Promise<ConversationPre
 
       return {
         ...c,
+        href: conversationPath(c.id),
         other_name: nameById.get(otherId) ?? "Хэрэглэгч",
         other_avatar: avatarById.get(otherId) ?? null,
         listing_title,
@@ -610,15 +757,6 @@ export async function markConversationRead(conversationId: number, readerId: Use
     )
     .returning({ id: messages.id });
   return updated.length > 0;
-}
-
-export async function hasMessageFrom(conversationId: number, senderId: UserId): Promise<boolean> {
-  const [row] = await db
-    .select({ id: messages.id })
-    .from(messages)
-    .where(and(eq(messages.conversationId, conversationId), eq(messages.senderId, senderId)))
-    .limit(1);
-  return row !== undefined;
 }
 
 // ---------- Үнэлгээ ----------

@@ -14,6 +14,22 @@ export function ListingStats({ stats }: { stats: ListingStat[] }) {
           >
             {stat.value}
           </dd>
+
+          {stat.bar ? (
+            <>
+              <div
+                className="mt-2 h-2 overflow-hidden rounded-full bg-ink/10"
+                role="img"
+                aria-label={stat.bar.caption}
+              >
+                <div
+                  className="h-full rounded-full bg-ink/60"
+                  style={{ width: `${Math.min(100, Math.round(stat.bar.ratio * 100))}%` }}
+                />
+              </div>
+              <p className="mt-1.5 text-xs text-ink-soft">{stat.bar.caption}</p>
+            </>
+          ) : null}
         </div>
       ))}
     </dl>

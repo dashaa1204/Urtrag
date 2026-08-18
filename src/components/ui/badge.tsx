@@ -19,10 +19,27 @@ export function Badge({ tone = "slate", children }: { tone?: keyof typeof toneCl
   );
 }
 
-/** matched — зар хүчинтэй ч аль хэдийн нэг хүсэлттэй тохирсон. */
-export function StatusBadge({ status, matched }: { status: ListingStatus; matched?: boolean }) {
+/**
+ * matched — зар хүчинтэй ч шинэ хүсэлт хүлээж авахаа больсон. Ачаанд "Тохирсон",
+ * аялалд "Дүүрсэн" гэсэн утгатай тул шошгыг дуудагч тал өгнө (ListingSummary).
+ */
+export function StatusBadge({
+  status,
+  matched,
+  matchedLabel = "Тохирсон",
+  expired,
+}: {
+  status: ListingStatus;
+  matched?: boolean;
+  matchedLabel?: string;
+  /** Аялалын огноо өнгөрсөн — хаагаагүй ч шинэ хүсэлт хүлээж авахгүй. */
+  expired?: boolean;
+}) {
   if (status !== "active") return <Badge tone="slate">Хаагдсан</Badge>;
-  return matched ? <Badge tone="amber">Тохирсон</Badge> : <Badge tone="green">Идэвхтэй</Badge>;
+  // Огноо өнгөрсөн нь "тохирсон"-оос илүү чухал мэдээлэл: тэр зар цаашид
+  // ямар ч байдлаар ажиллахгүй.
+  if (expired) return <Badge tone="amber">Огноо өнгөрсөн</Badge>;
+  return matched ? <Badge tone="amber">{matchedLabel}</Badge> : <Badge tone="green">Идэвхтэй</Badge>;
 }
 
 const countToneCls = {

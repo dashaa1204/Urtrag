@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { listingIdFromSlug } from "@/lib/nav";
 import { requireUser } from "@/lib/auth";
 import { getTrip } from "@/lib/data";
 import { ListingFormView } from "@/views/listings";
@@ -9,8 +10,8 @@ export const metadata: Metadata = { title: "Аялалын зар засах", r
 
 export default async function TripEditPage({ params }: PageProps<"/trips/[id]/edit">) {
   const { id } = await params;
-  const tripId = Number(id);
-  if (!Number.isInteger(tripId)) notFound();
+  const tripId = listingIdFromSlug("trip", id);
+  if (tripId === null) notFound();
 
   const user = await requireUser();
   const trip = await getTrip(tripId);

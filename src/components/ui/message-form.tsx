@@ -11,7 +11,7 @@ import {
 import { sendMessage } from "@/lib/actions";
 import { FormError } from "./form";
 import { SendIcon } from "./icons";
-import type { ListingType } from "@/types";
+import type { FormState, ListingType } from "@/types";
 
 interface MessageFormProps {
   conversationId?: number;
@@ -20,6 +20,11 @@ interface MessageFormProps {
   placeholder?: string;
   /** Товшилт бүрт дуудагдана — нөгөө талд "бичиж байна" гэж мэдэгдэхэд. */
   onTyping?: () => void;
+  /**
+   * Илгээх товшсон даруйд, серверийн хариуг хүлээлгүй дуудагдана — жагсаалт
+   * дээр мессежийг урьдчилж (optimistic) гаргахад.
+   */
+  onSend?: (body: string) => void;
   /** Бичих талбарын дээр орох нэмэлт талбар (хос зарын сонголт). */
   children?: ReactNode;
 }
@@ -44,11 +49,33 @@ export function MessageForm({
   listingId,
   placeholder,
   onTyping,
+  onSend,
   children,
 }: MessageFormProps) {
-  const [state, action, pending] = useActionState(sendMessage, undefined);
   const boxRef = useRef<HTMLTextAreaElement>(null);
   const wasPending = useRef(false);
+
+  /**
+   * Серверийн хариуг хүлээж байж талбарыг цэвэрлэвэл (action → бичих →
+   * revalidate → хуудсыг дахин render) хэдэн зуун мс-ээс секунд хүртэл бичсэн
+   * текст хөдөлгөөнгүй хэвээр үлдэж, гацсан мэт мэдрэгддэг. Иймд талбарыг
+   * шууд цэвэрлээд, мессежийг optimistic-оор жагсаалтад нэмнэ.
+   *
+   * onSend нь await-ээс өмнө буюу transition дотор дуудагдах ёстой —
+   * useOptimistic-ийн шинэчлэл зөвхөн тэнд хүчинтэй.
+   */
+  async function submit(previous: FormState | undefined, formData: FormData): Promise<FormState> {
+    const body = String(formData.get("body") ?? "").trim();
+    if (body) onSend?.(body);
+    const box = boxRef.current;
+    if (box) {
+      box.value = "";
+      grow(box);
+    }
+    return sendMessage(previous, formData);
+  }
+
+  const [state, action, pending] = useActionState(submit, undefined);
 
   // Илгээж дуусахад React формыг цэвэрлэдэг ч textarea-гийн өндөр хэвээрээ
   // үлддэг тул дахин тооцоолж, курсорыг буцаана.

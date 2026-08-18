@@ -14,7 +14,7 @@ export function ListingCard({ listing }: { listing: ListingSummary }) {
       <div className="flex items-center justify-between gap-2">
         <span className="min-w-0 break-words text-sm font-semibold text-ink">{listing.title}</span>
         <span className="flex shrink-0 items-center gap-2">
-          {listing.matched ? <Badge tone="amber">Тохирсон</Badge> : null}
+          {listing.matched ? <Badge tone="amber">{listing.fullLabel}</Badge> : null}
           <span className="text-xs">{listing.flags}</span>
         </span>
       </div>

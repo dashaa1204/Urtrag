@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import type { UserId } from "@/types";
-import { createClient } from "@/lib/supabase/client";
+import { createRealtimeClient } from "@/lib/supabase/client";
 
 /** Хамгийн сүүлийн товшилтоос хойш ийм хугацаанд "бичиж байна" хэвээр. */
 const TYPING_CLEAR = 4000;
@@ -35,13 +35,17 @@ export function useConversationChannel(
   const lastSent = useRef(0);
 
   useEffect(() => {
-    const supabase = createClient();
     const topic = `conversation:${conversationId}`;
+    let supabase: Awaited<ReturnType<typeof createRealtimeClient>> | undefined;
     let channel: RealtimeChannel | undefined;
     let clearTyping: ReturnType<typeof setTimeout> | undefined;
     let cancelled = false;
 
     void (async () => {
+      // RealtimeSync-тэй ижил шалтгаанаар токеноо эхлээд socket дээр тавина.
+      supabase = await createRealtimeClient();
+      if (cancelled) return;
+
       // supabase.channel() нь ижил нэртэй суваг байвал байгааг нь буцаадаг.
       // StrictMode-ийн давхар mount дээр энэ нь салж эхэлсэн сувгийг гардаг тул
       // хоёр талд ижил байх ёстой нэрийг хадгалахын тулд бүрэн салтал хүлээнэ.
@@ -67,7 +71,7 @@ export function useConversationChannel(
       cancelled = true;
       clearTimeout(clearTyping);
       channelRef.current = null;
-      if (channel) void supabase.removeChannel(channel);
+      if (supabase && channel) void supabase.removeChannel(channel);
     };
   }, [conversationId, otherId]);
 

@@ -11,7 +11,15 @@ import { Avatar, btnPrimary, CountBadge } from "@/components/ui";
 const itemCls =
   "flex min-h-11 items-center rounded-lg px-3 text-base font-medium text-ink-soft transition hover:bg-ink/5 hover:text-ink";
 
-export function MobileNav({ user, unread }: { user: SessionUser | null; unread: number }) {
+export function MobileNav({
+  user,
+  unread,
+  admin = false,
+}: {
+  user: SessionUser | null;
+  unread: number;
+  admin?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const [lastPathname, setLastPathname] = useState(pathname);
@@ -69,6 +77,11 @@ export function MobileNav({ user, unread }: { user: SessionUser | null; unread: 
                 <Link href="/settings" className={itemCls}>
                   Тохиргоо
                 </Link>
+                {admin ? (
+                  <Link href="/admin" className={itemCls}>
+                    Хянах самбар
+                  </Link>
+                ) : null}
                 <form action={logout} className="contents">
                   <button
                     type="submit"

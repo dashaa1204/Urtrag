@@ -5,11 +5,11 @@ import {
   getUserProfile,
   getUserRating,
   listUserReviews,
+  shipmentSummaries,
+  tripSummaries,
   userActiveShipments,
   userActiveTrips,
-  withMatchFlags,
 } from "@/lib/data";
-import { shipmentSummary, tripSummary } from "@/lib/listing";
 import UserProfileView from "@/views/users/user-profile-view";
 
 // Хувь хүний нэр, үнэлгээ агуулдаг тул хайлтын системд индексжүүлэхгүй
@@ -46,8 +46,8 @@ export default async function UserProfilePage({ params }: PageProps<"/users/[id]
       profile={profile}
       rating={rating}
       reviews={reviews}
-      trips={await withMatchFlags("trip", trips.map(tripSummary))}
-      shipments={await withMatchFlags("shipment", shipments.map(shipmentSummary))}
+      trips={await tripSummaries(trips)}
+      shipments={await shipmentSummaries(shipments)}
     />
   );
 }

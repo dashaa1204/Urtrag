@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { listTrips, withMatchFlags } from "@/lib/data";
-import { tripSummary } from "@/lib/listing";
+import { listTrips, tripSummaries } from "@/lib/data";
 import { isCountryCode } from "@/constant/cities";
 import { ListingsView } from "@/views/listings";
 
@@ -21,7 +20,7 @@ export default async function TripsPage({ searchParams }: PageProps<"/trips">) {
   return (
     <ListingsView
       type="trip"
-      listings={await withMatchFlags("trip", trips.map(tripSummary))}
+      listings={await tripSummaries(trips)}
       fromCountry={fromCountry}
       toCountry={toCountry}
     />

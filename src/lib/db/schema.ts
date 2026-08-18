@@ -24,6 +24,23 @@ export const dealStatusEnum = pgEnum("deal_status", ["pending", "accepted", "can
 export const verificationStatusEnum = pgEnum("verification_status", ["pending", "approved", "rejected"]);
 
 /**
+ * Хянагчийн бүртгэгддэг үйлдлүүд. Шинэ төрөл нэмэхэд migration шаардана —
+ * үүнийг дутагдал биш давуу тал гэж үзнэ: бүртгэлд юу орох нь ухамсартай
+ * шийдвэр байх ёстой.
+ */
+export const ADMIN_ACTION_KINDS = [
+  "listing_close",
+  "listing_reopen",
+  "listing_delete",
+  "verification_approve",
+  "verification_reject",
+] as const;
+
+export type AdminActionKind = (typeof ADMIN_ACTION_KINDS)[number];
+
+export const adminActionEnum = pgEnum("admin_action", ADMIN_ACTION_KINDS);
+
+/**
  * Хэрэглэгчийн нийтэд харагдах мэдээлэл.
  * id нь auth.users(id)-тэй ижил бөгөөд FK-г нь migration дотор нэмнэ
  * (auth схем нь Supabase-ийн мэдэлд байдаг тул drizzle-д тодорхойлохгүй).
@@ -137,9 +154,31 @@ export const conversations = pgTable(
      * Хуучин яриануудад NULL.
      */
     matchedListingId: integer("matched_listing_id"),
+    /**
+     * Хэлцэлд оролцох аялал / ачааны id — үүргээс нь үл хамааран. Яриа аль ч
+     * зүгээс эхэлж болдог (миний ачаа руу аялагч хандсан эсвэл би ачаагаараа
+     * аялал руу хандсан) тул нэг зар listing_id, matched_listing_id хоёрын аль
+     * алинд нь тохиолдоно. Тэр хоёр үүргийг ялгаж шалгах гэвэл нүх үлддэг —
+     * generated багана болгож нэгтгэснээр индекс, нийлбэр хоёулаа энгийн болно.
+     *
+     * Postgres өөрөө бөглөнө: код зөвхөн уншина.
+     */
+    tripId: integer("trip_id").generatedAlwaysAs(
+      sql`case when listing_type = 'trip' then listing_id else matched_listing_id end`
+    ),
+    shipmentId: integer("shipment_id").generatedAlwaysAs(
+      sql`case when listing_type = 'shipment' then listing_id else matched_listing_id end`
+    ),
     /** Хэлцлийн төлөв. Зарын эзэн шийднэ, дараа нь хоёр тал хүчингүй болгож чадна. */
     dealStatus: dealStatusEnum("deal_status").notNull().default("pending"),
     dealDecidedAt: timestamp("deal_decided_at", { withTimezone: true }),
+    /**
+     * Анх тохирсон хугацаа. Цуцлахад ЦЭВЭРЛЭГДЭХГҮЙ — "хэзээ нэгэн цагт
+     * тохиролцсон уу" гэдэг нь үнэлгээ өгөх эрхийн үндэс. Ачаагаа хүргэсний
+     * дараа зараа устгасан ч (эсвэл тохиролцоогоо хаасан ч) хоёр тал бие
+     * биенээ үнэлж чадах ёстой.
+     */
+    acceptedAt: timestamp("accepted_at", { withTimezone: true }),
     starterId: uuid("starter_id")
       .notNull()
       .references(() => profiles.id, { onDelete: "cascade" }),
@@ -152,19 +191,48 @@ export const conversations = pgTable(
     unique("conversations_listing_starter_key").on(t.listingType, t.listingId, t.starterId),
     index("idx_conversations_starter").on(t.starterId),
     index("idx_conversations_owner").on(t.ownerId),
-    // Зар бүр НЭГ л хэлцэлтэй байна. Хоёр хүсэлтийг зэрэг зөвшөөрөх гэвэл
-    // өгөгдлийн сан өөрөө зогсооно — зөвхөн кодын шалгалтад найдвал зэрэгцээ
+    // Ачаа ХУВААГДАХГҮЙ: нэг хайрцгийг хоёр аялагчид хувааж өгөх нь утгагүй тул
+    // ачаа бүр зэрэг зөвхөн нэг хэлцэлд орно. Кодын шалгалтад найдвал зэрэгцээ
     // хоёр товшилт хоёуланг нь өнгөрөөж мэднэ.
-    uniqueIndex("conversations_accepted_listing_key")
-      .on(t.listingType, t.listingId)
-      .where(sql`deal_status = 'accepted'`),
-    // Эхлүүлэгчийн хос зар ч мөн адил. listing_type-г оруулсан нь ач холбогдолтой:
-    // matched_listing_id нь эсрэг төрлийн зарын id тул ижил тоо аялал, ачаа
-    // хоёуланд таарч болно.
-    uniqueIndex("conversations_accepted_match_key")
-      .on(t.listingType, t.matchedListingId)
-      .where(sql`deal_status = 'accepted' and matched_listing_id is not null`),
+    uniqueIndex("conversations_accepted_shipment_key")
+      .on(t.shipmentId)
+      .where(sql`deal_status = 'accepted' and shipment_id is not null`),
+    // Аялал ХУВААГДАНА: сул жин нь хүрэх хүртэл олон ачаа авна. Нийлбэрийг
+    // индексээр илэрхийлэх боломжгүй тул acceptDeal доторх транзакц (аялалын
+    // мөрийг түгжээд нийлбэрийг шалгах) энэ дүрмийг барина.
+    index("idx_conversations_accepted_trip").on(t.tripId).where(sql`deal_status = 'accepted'`),
   ]
+);
+
+/**
+ * Хянагчийн үйлдлийн ул мөр.
+ *
+ * Хянагч БУСДЫН зар дээр ажилладаг (хаах, устгах) бөгөөд хэд хэдэн хүн байдаг
+ * тул "хэн, хэзээ, юуг" гэдэг нь өгөгдлийн санд үлдэх ёстой. Зар устсаны дараа
+ * түүнийг сэргээх боломжгүй ч ямар зар байсныг summary-гаас уншина.
+ *
+ * profiles руу FK ТАВИХГҮЙ бөгөөд нэрийг нь ХУУЛЖ хадгална: бүртгэл өөрөө
+ * өөртөө хангалттай байх ёстой. Cascade нь хянагчийн бүртгэл устахад түүхийг
+ * нь хамт арчих (эсвэл set null болгож хэнийх болохыг мартах) байсан — тэр нь
+ * аудитын утгыг үгүй хийнэ.
+ */
+export const adminActions = pgTable(
+  "admin_actions",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    actorId: uuid("actor_id").notNull(),
+    /** Үйлдэл хийх үеийн нэр — сүүлд солигдсон ч түүх уншигдана. */
+    actorName: text("actor_name").notNull(),
+    action: adminActionEnum("action").notNull(),
+    /** "trip" | "shipment" | "user" */
+    targetType: text("target_type").notNull(),
+    /** Зарын дугаар эсвэл хэрэглэгчийн uuid — хоёуланг нь барихын тулд text. */
+    targetId: text("target_id").notNull(),
+    /** "Vienna → Ulaanbaatar · dashaa" — устсаны дараа юу байсныг тайлбарлана. */
+    summary: text("summary"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("idx_admin_actions_created").on(t.createdAt)]
 );
 
 export const messages = pgTable(

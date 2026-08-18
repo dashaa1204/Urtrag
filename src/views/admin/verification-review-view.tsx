@@ -9,8 +9,7 @@ import {
   EmptyState,
   inputCls,
   labelCls,
-  PageContainer,
-  PageHeader,
+  SectionHeader,
 } from "@/components/ui";
 
 export interface VerificationRow extends PendingVerification {
@@ -23,11 +22,12 @@ const docCls = "text-sm font-semibold text-stamp hover:underline";
 
 export default function VerificationReviewView({ rows }: { rows: VerificationRow[] }) {
   return (
-    <PageContainer width="list">
-      <PageHeader
-        title="Баримт шалгах"
-        description="Хүлээгдэж буй хүсэлтүүд. Шийдвэр гармагц баримтын файл устна."
-      />
+    <div>
+      {/* Хуудасны гарчиг, таб нь /admin layout-аас ирнэ. */}
+      <SectionHeader title="Баримт шалгах" />
+      <p className="mb-4 text-sm text-ink-soft">
+        Хүлээгдэж буй хүсэлтүүд. Шийдвэр гармагц баримтын файл устна.
+      </p>
 
       {rows.length === 0 ? (
         <EmptyState title="Хүлээгдэж буй хүсэлт алга." />
@@ -98,6 +98,6 @@ export default function VerificationReviewView({ rows }: { rows: VerificationRow
           ))}
         </div>
       )}
-    </PageContainer>
+    </div>
   );
 }

@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 import { listShipments, listTrips } from "@/lib/data";
-import { listingPath } from "@/lib/listing";
+import { listingPath } from "@/lib/nav";
 import { SITE } from "@/constant/site";
 
 // Зар байнга нэмэгддэг тул цагт нэг удаа шинэчилнэ (эс бөгөөс build үеийнхээр хөлдөнө).
@@ -17,11 +17,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   const listings: MetadataRoute.Sitemap = [
-    ...trips.map((trip) => ({ type: "trip" as const, id: trip.id, createdAt: trip.created_at })),
-    ...shipments.map((s) => ({ type: "shipment" as const, id: s.id, createdAt: s.created_at })),
+    ...trips.map((trip) => ({ type: "trip" as const, row: trip })),
+    ...shipments.map((shipment) => ({ type: "shipment" as const, row: shipment })),
   ].map((listing) => ({
-    url: `${SITE.url}${listingPath(listing.type, listing.id)}`,
-    lastModified: listing.createdAt,
+    url: `${SITE.url}${listingPath(listing.type, listing.row)}`,
+    lastModified: listing.row.created_at,
     changeFrequency: "weekly" as const,
     priority: 0.6,
   }));

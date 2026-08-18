@@ -7,6 +7,8 @@ interface MessageBubbleProps {
   /** Нэг хүний дараалсан мессежийн эхэн / төгсгөл. */
   isFirstOfGroup: boolean;
   isLastOfGroup: boolean;
+  /** Сервер рүү явж байгаа, хараахан хадгалагдаагүй мессеж. */
+  isPending?: boolean;
   otherAvatar?: string | null;
   /** Бүлгийн сүүлчийн бөмбөлөг дор гарах тэмдэглэл ("Үзсэн"). */
   footer?: string;
@@ -21,6 +23,7 @@ export function MessageBubble({
   isMine,
   isFirstOfGroup,
   isLastOfGroup,
+  isPending,
   otherAvatar,
   footer,
 }: MessageBubbleProps) {
@@ -29,7 +32,9 @@ export function MessageBubble({
 
   return (
     <div
-      className={`flex flex-col ${isFirstOfGroup ? "mt-3" : "mt-0.5"} ${isMine ? "items-end" : "items-start"}`}
+      className={`flex flex-col ${isFirstOfGroup ? "mt-3" : "mt-0.5"} ${
+        isMine ? "items-end" : "items-start"
+      } ${isPending ? "opacity-60" : ""}`}
     >
       {/* Avatar нь бөмбөлгийн доод ирмэгтэй зэрэгцэнэ — цагийн мөр багананд
           орвол avatar түүн рүү татагдаж доошилдог тул мөрөөс гадуур байрлуулав. */}

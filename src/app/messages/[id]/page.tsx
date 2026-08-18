@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { conversationIdFromCode, listingPath } from "@/lib/nav";
 import { requireUser } from "@/lib/auth";
 import {
   getConversation,
@@ -7,21 +8,38 @@ import {
   getShipment,
   getTrip,
   getUserProfile,
-  hasMessageFrom,
   listMessages,
   markConversationRead,
 } from "@/lib/data";
 import { avatarUrl } from "@/lib/avatar";
-import { counterpartType, listingPath } from "@/lib/listing";
+import { counterpartType, travellerId } from "@/lib/listing";
 import { formatDate, formatKg } from "@/lib/format";
+import type { ListingType } from "@/types";
 import ConversationView from "@/views/messages/conversation-view";
 
 export const metadata: Metadata = { title: "Харилцан яриа", robots: { index: false, follow: false }, };
 
+/**
+ * Зарын гарчиг, хаяг. Зар устсан бол хаяг нь ч байхгүй тул 404 руу заахын
+ * оронд жагсаалт руу — found нь хос зарыг харуулах эсэхийг шийднэ.
+ */
+async function listingLink(type: ListingType, id: number) {
+  if (type === "trip") {
+    const trip = await getTrip(id);
+    return trip
+      ? { found: true, title: `Аялал · ${formatDate(trip.travel_date)}`, href: listingPath("trip", trip) }
+      : { found: false, title: "Аялал", href: "/trips" };
+  }
+  const shipment = await getShipment(id);
+  return shipment
+    ? { found: true, title: `Ачаа · ${formatKg(shipment.weight_kg)}`, href: listingPath("shipment", shipment) }
+    : { found: false, title: "Ачаа", href: "/shipments" };
+}
+
 export default async function ConversationPage({ params }: PageProps<"/messages/[id]">) {
   const { id } = await params;
-  const conversationId = Number(id);
-  if (!Number.isInteger(conversationId)) notFound();
+  const conversationId = conversationIdFromCode(id);
+  if (conversationId === null) notFound();
 
   const user = await requireUser("/messages");
 
@@ -30,56 +48,35 @@ export default async function ConversationPage({ params }: PageProps<"/messages/
     notFound();
   }
 
-  const hadUnread = await markConversationRead(conversation.id, user.id);
-
   const otherId = conversation.starter_id === user.id ? conversation.owner_id : conversation.starter_id;
+  // Яриа эхлүүлэгчийн хос зар. Устсан эсвэл хуучин ярианд байхгүй байж болно.
+  const matchId = conversation.matched_listing_id;
 
-  const [other, messages, canReview, ownReview] = await Promise.all([
+  // Мессеж илгээх болгонд энэ хуудас бүхэлдээ дахин render хийгддэг тул
+  // дуудлагууд дараалахгүй — уншсанд тэмдэглэх нь бусдын мессежийг хөндөх тул
+  // listMessages-тэй зэрэг явахад "Үзсэн" тэмдэглэгээнд нөлөөлөхгүй.
+  const [hadUnread, other, messages, ownReview, listing, matchListing] = await Promise.all([
+    markConversationRead(conversation.id, user.id),
     getUserProfile(otherId),
     listMessages(conversation.id),
-    hasMessageFrom(conversation.id, otherId),
     getOwnReview(conversation.id, user.id),
+    listingLink(conversation.listing_type, conversation.listing_id),
+    matchId === null ? null : listingLink(counterpartType(conversation.listing_type), matchId),
   ]);
 
-  let listingTitle: string;
-  let listingHref: string;
-  if (conversation.listing_type === "trip") {
-    const trip = await getTrip(conversation.listing_id);
-    listingTitle = trip ? `Аялал · ${formatDate(trip.travel_date)}` : "Аялал";
-    listingHref = `/trips/${conversation.listing_id}`;
-  } else {
-    const shipment = await getShipment(conversation.listing_id);
-    listingTitle = shipment ? `Ачаа · ${formatKg(shipment.weight_kg)}` : "Ачаа";
-    listingHref = `/shipments/${conversation.listing_id}`;
-  }
+  // Үнэлгээ нь бодит тохиролцоог илэрхийлнэ. Цуцлагдсан ч нэг удаа тохирсон
+  // байсан бол хэвээр нээлттэй — ачаа хүргэгдсэний дараа зар хаагдаж, устаж
+  // болно.
+  const canReview = conversation.accepted_at !== null;
 
-  // Яриа эхлүүлэгчийн хос зар. Устсан эсвэл хуучин ярианд байхгүй байж болно.
   const otherName = other?.name ?? "Хэрэглэгч";
-  const matchType = counterpartType(conversation.listing_type);
-  const matchId = conversation.matched_listing_id;
-  const matchLabel = conversation.starter_id === user.id ? "Таны зар" : `${otherName}-ийн зар`;
-  let match: { label: string; title: string; href: string } | null = null;
-  if (matchId !== null) {
-    if (matchType === "trip") {
-      const trip = await getTrip(matchId);
-      if (trip) {
-        match = {
-          label: matchLabel,
-          title: `Аялал · ${formatDate(trip.travel_date)}`,
-          href: listingPath("trip", trip.id),
-        };
+  const match = matchListing?.found
+    ? {
+        label: conversation.starter_id === user.id ? "Таны зар" : `${otherName}-ийн зар`,
+        title: matchListing.title,
+        href: matchListing.href,
       }
-    } else {
-      const shipment = await getShipment(matchId);
-      if (shipment) {
-        match = {
-          label: matchLabel,
-          title: `Ачаа · ${formatKg(shipment.weight_kg)}`,
-          href: listingPath("shipment", shipment.id),
-        };
-      }
-    }
-  }
+    : null;
 
   return (
     <ConversationView
@@ -89,9 +86,10 @@ export default async function ConversationPage({ params }: PageProps<"/messages/
       otherId={otherId}
       otherName={otherName}
       otherAvatar={avatarUrl(other?.avatar_path)}
-      listingTitle={listingTitle}
-      listingHref={listingHref}
+      listingTitle={listing.title}
+      listingHref={listing.href}
       match={match}
+      canAccept={travellerId(conversation) === user.id}
       canReview={canReview}
       ownReview={ownReview}
       hadUnread={hadUnread}

@@ -9,20 +9,20 @@ import type { DealStatus } from "@/types";
  * Хүсэлтийн шийдвэр. Зарын эзэн тохирох эсвэл татгалзах, тохирсны дараа
  * хоёр тал хоёулаа цуцлах боломжтой.
  *
- * Тохирсон үед хоёр зар хоёулаа "эзэнтэй" болно — өөр хүнтэй давхар
- * тохирохгүй. Цуцлангуут хоёулаа дахин сул болно.
+ * Тохирсон үед ачаа нь "эзэнтэй" болж (өөр аялагч авахгүй), аялалын сул жингээс
+ * тухайн ачааны жин хасагдана. Цуцлангуут хоёулаа дахин чөлөөлөгдөнө.
  */
 export function DealBox({
   conversationId,
   status,
-  isOwner,
+  canAccept,
   otherName,
   hasMatch,
 }: {
   conversationId: number;
   status: DealStatus;
-  /** Үзэгч нь зарын эзэн үү (тохирох эрх зөвхөн түүнд). */
-  isOwner: boolean;
+  /** Үзэгч нь АЯЛАГЧ уу — сул жин нь түүнийх тул шийдвэр ч түүнийх. */
+  canAccept: boolean;
   otherName: string;
   /** Хос зар сонгогдсон эсэх — хуучин яриануудад байхгүй. */
   hasMatch: boolean;
@@ -31,12 +31,12 @@ export function DealBox({
 
   const text =
     status === "accepted"
-      ? `Та ${otherName}-тай тохирсон. Хоёр зар хоёулаа өөр хүнтэй давхар тохирохгүй.`
+      ? `Та ${otherName}-тай тохирсон. Ачаа энэ аялалд захиалагдаж, аялалын сул жингээс хасагдлаа.`
       : status === "cancelled"
-        ? "Энэ хүсэлт цуцлагдсан. Хоёр зар хоёулаа дахин сул боллоо."
-        : isOwner
-          ? `${otherName} таны зарыг сонгож хүсэлт илгээсэн байна.`
-          : `${otherName} хариу өгөхийг хүлээж байна.`;
+        ? "Энэ хүсэлт цуцлагдсан. Ачаа сул болж, аялалын жин чөлөөлөгдлөө."
+        : canAccept
+          ? `${otherName}-ийн ачааг энэ аялалдаа авах уу? Баталмагц сул жингээс хасагдана.`
+          : `Аялагч ${otherName} хариу өгөхийг хүлээж байна.`;
 
   return (
     <form action={action} className="flex flex-col gap-3">
@@ -54,17 +54,17 @@ export function DealBox({
             disabled={pending}
             className={btnSecondary}
             onClick={(event) => {
-              if (!confirm("Тохиролцоог цуцлах уу? Хоёр зар хоёулаа дахин сул болно.")) {
+              if (!confirm("Тохиролцоог цуцлах уу? Ачаа сул болж, аялалын жин чөлөөлөгдөнө.")) {
                 event.preventDefault();
               }
             }}
           >
             Тохиролцоог цуцлах
           </button>
-        ) : isOwner && hasMatch ? (
+        ) : canAccept && hasMatch ? (
           <>
             <button type="submit" name="decision" value="accepted" disabled={pending} className={btnPrimary}>
-              Тохиролцлоо
+              Ачааг авна
             </button>
             {status === "pending" ? (
               <button

@@ -11,6 +11,7 @@ export function ListingActionForm({
   action,
   type,
   id,
+  back,
   className,
   confirmMessage,
   children,
@@ -18,6 +19,11 @@ export function ListingActionForm({
   action: (formData: FormData) => void | Promise<void>;
   type: ListingType;
   id: number;
+  /**
+   * Үйлдлийн дараа буцах зам. Өгөөгүй бол server action өөрөө шийднэ
+   * (хэрэглэгчийн үйлдэл үргэлж /my руу буцдаг).
+   */
+  back?: string;
   className: string;
   /** Өгвөл илгээхээс өмнө баталгаажуулна. */
   confirmMessage?: string;
@@ -32,6 +38,7 @@ export function ListingActionForm({
     >
       <input type="hidden" name="type" value={type} />
       <input type="hidden" name="id" value={id} />
+      {back ? <input type="hidden" name="back" value={back} /> : null}
       <button type="submit" className={className}>
         {children}
       </button>

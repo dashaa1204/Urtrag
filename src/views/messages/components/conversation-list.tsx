@@ -99,7 +99,7 @@ export function ConversationList({
           {visible.map((conversation) => (
             <PanelRow
               key={conversation.id}
-              href={`/messages/${conversation.id}`}
+              href={conversation.href}
               className="flex items-center gap-3"
             >
               <Avatar

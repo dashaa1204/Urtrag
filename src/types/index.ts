@@ -70,22 +70,40 @@ export interface Conversation {
   listing_id: number;
   /** Эхлүүлэгчийн хос зар — зарын эсрэг төрөл. Хуучин яриануудад null. */
   matched_listing_id: number | null;
+  /**
+   * Хэлцэлд оролцох аялал / ачаа — үүргээс үл хамааран (Postgres-ийн generated
+   * багана). Хос зар сонгогдоогүй хуучин яриануудад аль нэг нь null.
+   */
+  trip_id: number | null;
+  shipment_id: number | null;
   deal_status: DealStatus;
   deal_decided_at: Date | null;
+  /**
+   * Анх тохирсон хугацаа — цуцлахад цэвэрлэгдэхгүй. Үнэлгээ өгөх эрх үүн дээр
+   * тулна: хэзээ нэгэн цагт тохиролцсон хоёр тал л бие биенээ үнэлнэ.
+   */
+  accepted_at: Date | null;
   starter_id: UserId;
   owner_id: UserId;
   created_at: Date;
 }
 
-/** Зар дээр тохирсон хэлцэл — дэлгэрэнгүй хуудсанд "Тохирсон" гэж харуулна. */
+/**
+ * Зар дээр тохирсон хэлцэл. Ачаанд хамгийн ихдээ нэг, аялалд сул жин
+ * хүрэлцэх хүртэл олон байна.
+ */
 export interface ListingDeal {
   conversation_id: number;
   starter_id: UserId;
   owner_id: UserId;
   decided_at: Date | null;
+  /** Хэлцэлд орсон ачааны жин — аялалын хуудсанд юу захиалагдсаныг харуулахад. */
+  shipment_kg: number | null;
 }
 
 export interface ConversationPreview extends Conversation {
+  /** Ярианы нийтийн хаяг. Жагсаалт нь клиент тул кодчилол серверт үлдэнэ. */
+  href: string;
   other_name: string;
   other_avatar: string | null;
   listing_title: string;

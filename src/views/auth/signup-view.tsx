@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AuthCard, SignupForm } from "./components";
+import { AuthCard, GoogleAuth, SignupForm } from "./components";
 
 export default function SignupView({ next }: { next?: string }) {
   return (
@@ -18,6 +18,7 @@ export default function SignupView({ next }: { next?: string }) {
         </p>
       }
     >
+      <GoogleAuth next={next} terms />
       <SignupForm next={next} />
     </AuthCard>
   );

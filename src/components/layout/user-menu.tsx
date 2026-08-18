@@ -8,7 +8,7 @@ import { Dropdown } from "./dropdown";
 const itemCls =
   "flex w-full items-center rounded-lg px-3 py-2 text-left text-sm font-medium text-ink-soft transition hover:bg-ink/5 hover:text-ink";
 
-export function UserMenu({ user }: { user: SessionUser }) {
+export function UserMenu({ user, admin = false }: { user: SessionUser; admin?: boolean }) {
   return (
     <Dropdown
       label="Профайлын цэс"
@@ -27,6 +27,13 @@ export function UserMenu({ user }: { user: SessionUser }) {
       <Link href="/settings" role="menuitem" className={itemCls}>
         Тохиргоо
       </Link>
+      {/* Хянагчийн цорын ганц орох цэг — хаяг нь нууц биш ч цэсэнд зөвхөн
+          эрхтэй хүнд харагдана. */}
+      {admin ? (
+        <Link href="/admin" role="menuitem" className={itemCls}>
+          Хянах самбар
+        </Link>
+      ) : null}
 
       <form action={logout}>
         <button

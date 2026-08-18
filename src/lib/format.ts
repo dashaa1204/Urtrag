@@ -14,9 +14,18 @@ function place(city: string | null, code: string): string {
   return city || countryName(code);
 }
 
+/** Чиглэлийн хоёр үзүүр салангид — OG зураг зэрэг мөр биш байрлалд хэрэгтэй. */
+export function routeEnds(route: Route): { from: string; to: string } {
+  return {
+    from: place(route.from_city, route.from_country),
+    to: place(route.to_city, route.to_country),
+  };
+}
+
 /** "Vienna → Ulaanbaatar" — хот хоосон хуучин зарт улсын нэр гарна. */
 export function routeTitle(route: Route): string {
-  return `${place(route.from_city, route.from_country)} → ${place(route.to_city, route.to_country)}`;
+  const { from, to } = routeEnds(route);
+  return `${from} → ${to}`;
 }
 
 /** "🇦🇹 → 🇲🇳" */

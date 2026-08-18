@@ -33,12 +33,14 @@ export function BoardingPass({
   /** Бичиг баримтаар баталгаажсан эсэх (/settings/identity). */
   identityVerified: boolean;
 }) {
+  // Тамганы бичиг англиар — лац өөрөө англи "Urtrag" тамдагтай тул нэг аястай
+  // байх ба тайлбар (title/sr-only) монголоор хэвээр.
   const stamps = [
-    { label: "Баримт", title: "Бичиг баримтаар баталгаажсан", earned: identityVerified },
-    { label: "Имэйл", title: "Имэйл баталгаажсан", earned: user.emailVerified },
-    { label: "Утас", title: "Утасны дугаар нэмсэн", earned: Boolean(user.phone) },
+    { label: "ID verified", title: "Бичиг баримтаар баталгаажсан", earned: identityVerified },
+    { label: "Email verified", title: "Имэйл баталгаажсан", earned: user.emailVerified },
+    { label: "Phone added", title: "Утасны дугаар нэмсэн", earned: Boolean(user.phone) },
     {
-      label: "Шилдэг",
+      label: "Top rated",
       title: `Шилдэг үнэлгээтэй (${TOP_RATED.minAvg}+, ${TOP_RATED.minCount}-аас дээш үнэлгээ)`,
       earned: rating.count >= TOP_RATED.minCount && rating.avg >= TOP_RATED.minAvg,
     },
@@ -52,7 +54,9 @@ export function BoardingPass({
   ];
 
   return (
-    <section className="overflow-hidden rounded-2xl border-2 border-ink/12 bg-card">
+    // overflow-hidden биш — тамга нь тасалбарын ирмэгээс халин гарч байж
+    // гараар дарсан лац шиг үнэмшилтэй харагдана.
+    <section className="rounded-2xl border-2 border-ink/12 bg-card">
       <div className="flex items-start justify-between gap-4 px-4 pt-4 sm:px-6 sm:pt-5">
         <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-ink">
           <LogoMark className="h-6 w-6" />
@@ -84,7 +88,9 @@ export function BoardingPass({
           </div>
         </div>
 
-        <div className="grid grid-cols-4 gap-2 sm:grid-cols-2 sm:gap-3">
+        {/* Байрлал хэвээр (утсанд 4 нэг мөрөнд, дэлгэцэнд 2x2) — зөвхөн тамганууд
+            хоорондоо давхцахаар ойртож, баруун ирмэгээс халина. */}
+        <div className="grid w-fit grid-cols-4 sm:-mr-8 sm:grid-cols-2">
           {stamps.map((stamp) => (
             <PassStamp key={stamp.label} {...stamp} />
           ))}

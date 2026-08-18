@@ -38,7 +38,7 @@ npm run db:migrate
 Энэ нь `drizzle/` доторх migration-уудыг ажиллуулж, хүснэгт, RLS болон
 `auth.users` → `profiles` trigger-ийг үүсгэнэ.
 
-### 4. Имэйл баталгаажуулалт ба нууц үг сэргээх
+### 4. Нэвтрэлт (имэйл ба Google)
 
 Supabase Dashboard → Authentication → URL Configuration:
 
@@ -51,6 +51,23 @@ Supabase Dashboard → Authentication → URL Configuration:
 > Supabase-ийн үнэгүй SMTP нь цагт хэдхэн имэйл л илгээдэг бөгөөд зөвхөн
 > баг гишүүдийн хаяг руу явдаг. Жинхэнэ хэрэглэгчидтэй ажиллахын өмнө
 > Authentication → Emails хэсэгт өөрийн SMTP (Resend, Postmark г.м.) холбоно уу.
+
+**Google-ээр нэвтрэх** нь нэмэлт хоёр тохиргоо шаардана:
+
+1. [Google Cloud Console](https://console.cloud.google.com/apis/credentials) →
+   **Create credentials → OAuth client ID → Web application**. Тэнд
+   *Authorized redirect URIs* талбарт Supabase-ийн буцах хаягийг бичнэ:
+   `https://<төслийн-id>.supabase.co/auth/v1/callback`
+   (энэ хаягийг Supabase → Authentication → Sign In / Providers → Google
+   хэсгээс хуулж авна).
+2. Гарсан **Client ID / Client secret** хоёрыг тэрхүү Google провайдер дээр
+   тавьж, идэвхжүүлнэ.
+
+Аппын талд нэмэлт орчны хувьсагч хэрэггүй — товч нь `/auth/callback` руу л
+буцаана (2-р алхмын Redirect URLs жагсаалтад аль хэдийн байгаа).
+
+> Google-ээр үүссэн хэрэглэгчийн утасны дугаар хоосон ирнэ. Профайлаа
+> `/settings` дээр гүйцээх боломжтой.
 
 ### 5. Файлын хадгалалт
 
@@ -69,9 +86,25 @@ Supabase дээр нэг bucket үүсгэнэ:
 браузарт ~15КБ болж ирнэ. `profiles.avatar_path` баганад Cloudinary-ийн
 `public_id` хадгалагдана; шинэ зураг тавихад хуучин нь устна.
 
-Хүсэлт шалгах эрхийг `.env.local` дахь `ADMIN_USER_IDS`-ээр өгнө (хэрэглэгчийн
-uuid, таслалаар тусгаарлана). Шалгах хуудас: `/admin/verifications` — эрхгүй
-хүнд 404 буцаана.
+Хянагчийн эрхийг `.env.local` дахь `ADMIN_USER_IDS`-ээр өгнө (хэрэглэгчийн
+uuid, таслалаар тусгаарлана). Эрхтэй хүнд профайлын цэсэнд "Хянах самбар"
+холбоос нэмэгдэнэ; эрхгүй хүнд `/admin` бүхэлдээ 404 буцна — хуудас байгаа
+эсэхийг ч мэдэгдэхгүй.
+
+| Хуудас | Юу хийдэг |
+| --- | --- |
+| `/admin` | Тойм: хэрэглэгч, зар, хэлцэл, мессежийн тоо, сүүлийн идэвх |
+| `/admin/users` | Хэрэглэгчийн жагсаалт — нэрээр хайх, зар/хэлцэл/үнэлгээ |
+| `/admin/listings` | Бүх зар — төрөл/төлөвөөр шүүх, хаах, нээх, устгах |
+| `/admin/deals` | Хэлцлүүд төлөвөөр. Мессежийн ТОО л харагдана, агуулга нь үгүй |
+| `/admin/verifications` | Бичиг баримтын хүсэлт шалгах |
+| `/admin/log` | Хянагчийн үйлдлийн түүх — хэн, хэзээ, юуг |
+
+Хянагч бусдын зар дээр ажилладаг тул үйлдэл бүр `admin_actions` хүснэгтэд
+бичигдэнэ (зар хаах/нээх/устгах, баримт батлах/татгалзах). Бүртгэл нь зөвхөн
+нэмэгддэг: аппаас засах, устгах зам байхгүй. Хянагчийн нэрийг тэр үеийн
+байдлаар нь хуулж хадгалдаг бөгөөд `profiles` руу FK тавьдаггүй — бүртгэл
+бүртгүүлсэн хүнээсээ илүү удаан амьдрах ёстой.
 
 ### 6. Тест дата (заавал биш)
 
@@ -102,9 +135,11 @@ src/
     supabase/   # Supabase клиентүүд (server / admin / client — realtime)
     cloudinary.ts # зураг байршуулах / устгах (сервер тал)
     avatar.ts   # public_id → хүргэх URL
-    auth.ts     # getCurrentUser / requireUser
+    auth.ts     # getCurrentUser / requireUser / requireAdmin
     data.ts     # бүх DB query
     actions.ts  # server action-ууд
+    admin-data.ts    # зөвхөн хянагчийн асуулгууд (тойм, жагсаалт)
+    admin-actions.ts # зөвхөн хянагчийн үйлдлүүд (бусдын зар дээр)
   proxy.ts      # Supabase session сэргээх (Next 16-д middleware.ts-ийг орлоно)
 drizzle/        # SQL migration-ууд
 scripts/         # seed.ts (тест дата), setup-storage.ts (bucket)

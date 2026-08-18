@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useOptimistic } from "react";
 import { useRouter } from "next/navigation";
 import type { Conversation, Message, Review, UserId } from "@/types";
 import { useOnlineUsers } from "@/components/layout/presence-provider";
@@ -19,6 +19,8 @@ interface ConversationViewProps {
   listingHref: string;
   /** Яриа эхлүүлэгчийн хос зар — хэний зар болохыг label дээр бичнэ. */
   match: { label: string; title: string; href: string } | null;
+  /** Хэлцлийг зөвшөөрөх эрхтэй тал мөн эсэх (аялагч). Серверт шийдэгдэнэ. */
+  canAccept: boolean;
   canReview: boolean;
   ownReview: Review | null;
   hadUnread: boolean;
@@ -34,6 +36,7 @@ export default function ConversationView({
   listingTitle,
   listingHref,
   match,
+  canAccept,
   canReview,
   ownReview,
   hadUnread,
@@ -41,6 +44,25 @@ export default function ConversationView({
   const router = useRouter();
   const { otherTyping, notifyTyping } = useConversationChannel(conversation.id, currentUserId, otherId);
   const otherOnline = useOnlineUsers().has(otherId);
+
+  // Илгээж буй мессежийг серверийн хариу ирэхээс өмнө жагсаалтад тавина.
+  // Хариу ирэхэд messages нь шинэ мөрөө агуулсан байх тул энэ нь чимээгүй
+  // ална. Түр мөрийг сөрөг id-гаар (жинхэнэ id үргэлж эерэг) таньна.
+  const [shownMessages, addPendingMessage] = useOptimistic(
+    messages,
+    (current, body: string): Message[] => [
+      ...current,
+      {
+        id: -(current.length + 1),
+        conversation_id: conversation.id,
+        sender_id: currentUserId,
+        body,
+        created_at: new Date(),
+        read_at: null,
+        sender_name: "",
+      },
+    ]
+  );
 
   // Хуудсыг render хийхэд сервер тал мессежийг уншсанд тооцдог. Гэвч уншаагүйн
   // тоолуур navbar дээр буюу layout дотор байдаг бөгөөд Next нь шилжилтийн үед
@@ -85,7 +107,7 @@ export default function ConversationView({
         ) : null}
 
         <MessageList
-          messages={messages}
+          messages={shownMessages}
           currentUserId={currentUserId}
           otherName={otherName}
           otherAvatar={otherAvatar}
@@ -97,6 +119,7 @@ export default function ConversationView({
             conversationId={conversation.id}
             placeholder="Хариу бичих..."
             onTyping={notifyTyping}
+            onSend={addPendingMessage}
           />
         </div>
       </Panel>
@@ -106,7 +129,7 @@ export default function ConversationView({
         <DealBox
           conversationId={conversation.id}
           status={conversation.deal_status}
-          isOwner={conversation.owner_id === currentUserId}
+          canAccept={canAccept}
           otherName={otherName}
           hasMatch={conversation.matched_listing_id !== null}
         />
