@@ -47,7 +47,7 @@ export function EmptyState({
   return (
     <div className="rounded-xl border-2 border-dashed border-ink/25 bg-card p-8 text-center sm:p-10">
       <p className="text-ink-soft">{title}</p>
-      {description ? <p className="mt-1 text-sm text-ink-soft/70">{description}</p> : null}
+      {description ? <p className="mt-1 text-sm text-ink-soft">{description}</p> : null}
       {action ? <div className="mt-3 flex justify-center">{action}</div> : null}
     </div>
   );

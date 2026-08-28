@@ -42,18 +42,27 @@ export default function DashboardView({
   }));
 
   // Ачаанд огноо өнгөрөх ойлголт байхгүй тул тэр шүүлтүүрийг харуулахгүй.
+  //
+  // Табууд тоогоо харуулж байхад шүүлтүүрүүд харуулдаггүй байсан — гэтэл
+  // "хэдэн зарын минь хугацаа өнгөрчихсөн бэ" гэдэг нь энэ хуудсан дээрх
+  // хамгийн үйлдэл шаардсан тоо, тэрийг мэдэхийн тулд дарж үзэхээс өөр арга
+  // байсангүй.
   const filterItems = LISTING_FILTERS.filter(
     (item) => item.key !== "expired" || tab === "trips"
-  ).map((item) => ({ ...item, href: dashboardHref(tab, item.key) }));
+  ).map((item) => ({
+    ...item,
+    href: dashboardHref(tab, item.key),
+    count: listings.filter((listing) => matchesFilter(listing, item.key)).length,
+  }));
 
   return (
     <PageContainer width="list">
-      <BoardingPass user={user} rating={rating} counts={counts} identityVerified={identityVerified} />
+      <BoardingPass user={user} rating={rating} identityVerified={identityVerified} />
 
       <div className="mt-6 space-y-2">
         <SegmentedNav items={tabItems} active={tab} ariaLabel="Хэсэг" />
         {tab === "reviews" ? null : (
-          <SegmentedNav items={filterItems} active={filter} ariaLabel="Зарын төлөв" />
+          <SegmentedNav items={filterItems} active={filter} ariaLabel="Зарын төлөв" wrap />
         )}
       </div>
 

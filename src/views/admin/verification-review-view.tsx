@@ -53,7 +53,7 @@ export default function VerificationReviewView({ rows }: { rows: VerificationRow
                     Нүүр талыг харах
                   </a>
                 ) : (
-                  <span className="text-sm text-ink-soft/70">Нүүр тал алга</span>
+                  <span className="text-sm text-ink-soft">Нүүр тал алга</span>
                 )}
                 {row.back_url ? (
                   <a href={row.back_url} target="_blank" rel="noreferrer" className={docCls}>

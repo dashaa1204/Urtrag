@@ -24,7 +24,7 @@ export default function PrivacySettingsView() {
             </li>
           ))}
         </ul>
-        <p className="mt-4 text-xs text-ink-soft/70">
+        <p className="mt-4 text-xs text-ink-soft">
           Дэлгэрэнгүйг{" "}
           <Link href="/disclaimer" className="font-semibold text-stamp hover:underline">
             хариуцлагын тайлбар

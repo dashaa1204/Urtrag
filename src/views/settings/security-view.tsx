@@ -24,7 +24,7 @@ export default function SecuritySettingsView({ user }: { user: SessionUser }) {
             <dd className="font-medium text-ink">{formatDate(user.createdAt)}</dd>
           </div>
         </dl>
-        <p className="mt-4 text-xs text-ink-soft/70">
+        <p className="mt-4 text-xs text-ink-soft">
           Имэйл хаягаа солих шаардлагатай бол бидэнтэй холбогдоно уу.
         </p>
       </Card>

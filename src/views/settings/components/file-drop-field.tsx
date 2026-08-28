@@ -28,7 +28,7 @@ export function FileDropField({
   return (
     <div>
       <label htmlFor={name} className={labelCls}>
-        {label} {optional ? <span className="font-normal text-ink-soft/70">(заавал биш)</span> : null}
+        {label} {optional ? <span className="font-normal text-ink-soft">(заавал биш)</span> : null}
       </label>
 
       <div className="relative rounded-xl border-2 border-dashed border-ink/25 bg-card px-4 py-8 text-center transition hover:border-ink/45">
@@ -42,7 +42,7 @@ export function FileDropField({
         />
         <UploadIcon className="mx-auto h-6 w-6 text-ink-soft/60" />
         <p className="mt-2 text-sm font-semibold text-ink">{fileName ?? prompt}</p>
-        <p className="mt-0.5 text-xs text-ink-soft/70">{hint}</p>
+        <p className="mt-0.5 text-xs text-ink-soft">{hint}</p>
       </div>
 
       <FieldError message={error} />

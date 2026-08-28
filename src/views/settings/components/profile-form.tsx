@@ -18,7 +18,7 @@ import {
 } from "@/components/ui";
 import { AvatarPicker } from "./avatar-picker";
 
-const groupCls = "text-xs font-semibold uppercase tracking-wider text-ink-soft/70";
+const groupCls = "text-xs font-semibold uppercase tracking-wider text-ink-soft";
 
 export function ProfileForm({ user }: { user: SessionUser }) {
   const [state, action, pending] = useActionState(updateProfile, undefined);

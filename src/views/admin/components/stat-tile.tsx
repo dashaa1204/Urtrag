@@ -23,7 +23,7 @@ export function StatTile({
     <>
       <p className="text-sm text-ink-soft">{label}</p>
       <p className="mt-1 text-2xl font-bold text-ink">{value}</p>
-      {hint ? <p className="mt-0.5 text-xs text-ink-soft/70">{hint}</p> : null}
+      {hint ? <p className="mt-0.5 text-xs text-ink-soft">{hint}</p> : null}
     </>
   );
 
