@@ -16,7 +16,7 @@ const toneByStatus: Record<DealStatus, "green" | "amber" | "slate"> = {
 function DealListing({ listing, label }: { listing: AdminDeal["trip"]; label: string }) {
   if (!listing) {
     return (
-      <p className="truncate text-xs text-ink-soft/70">
+      <p className="truncate text-xs text-ink-soft">
         {label}: <span className="italic">устсан</span>
       </p>
     );
@@ -55,7 +55,7 @@ export function AdminDealRow({ deal }: { deal: AdminDeal }) {
 
       <div className="flex shrink-0 flex-wrap items-center gap-2 sm:w-40 sm:flex-col sm:items-end sm:gap-1">
         <Badge tone={toneByStatus[deal.status]}>{dealStatusLabel(deal.status)}</Badge>
-        <span className="text-xs text-ink-soft/70">
+        <span className="text-xs text-ink-soft">
           {formatDate(deal.created_at)} · {deal.messages} мессеж
         </span>
       </div>

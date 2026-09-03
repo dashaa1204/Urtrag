@@ -30,7 +30,7 @@ export function ListingCard({ listing }: { listing: ListingSummary }) {
         <p className="mt-2 line-clamp-2 break-words text-sm text-ink-soft">{listing.body}</p>
       ) : null}
 
-      <div className="mt-3 flex items-center gap-2 text-xs text-ink-soft/70">
+      <div className="mt-3 flex items-center gap-2 text-xs text-ink-soft">
         <Avatar name={listing.userName} src={avatarUrl(listing.userAvatar)} size="xs" />
         <span className="min-w-0 truncate">{listing.userName}</span>
       </div>

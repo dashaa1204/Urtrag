@@ -16,7 +16,7 @@ export function ReviewList({ reviews, title }: { reviews: Review[]; title?: stri
               <p className="text-sm font-medium text-ink">
                 {review.reviewer_name} <Stars rating={review.rating} />
               </p>
-              <span className="text-xs text-ink-soft/70">
+              <span className="text-xs text-ink-soft">
                 <LocalTime iso={review.created_at} dateOnly />
               </span>
             </div>

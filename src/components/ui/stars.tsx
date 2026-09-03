@@ -14,13 +14,13 @@ export function Stars({ rating }: { rating: number }) {
 /** Дундаж үнэлгээний товч харагдац: ★ 4.5 (3) */
 export function RatingSummary({ rating }: { rating: UserRating }) {
   if (rating.count === 0) {
-    return <span className="text-xs text-ink-soft/70">Үнэлгээгүй</span>;
+    return <span className="text-xs text-ink-soft">Үнэлгээгүй</span>;
   }
   return (
     <span className="inline-flex items-center gap-1 text-sm">
       <span className="text-amber-500">★</span>
       <span className="font-semibold text-ink">{rating.avg.toFixed(1)}</span>
-      <span className="text-ink-soft/70">({rating.count})</span>
+      <span className="text-ink-soft">({rating.count})</span>
     </span>
   );
 }
