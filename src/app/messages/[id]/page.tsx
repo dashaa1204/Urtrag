@@ -88,6 +88,7 @@ export default async function ConversationPage({ params }: PageProps<"/messages/
       otherId={otherId}
       otherName={otherName}
       otherAvatar={avatarUrl(other?.avatar_path)}
+      otherVerified={other?.verified ?? false}
       otherDeleted={otherDeleted}
       listingTitle={listing.title}
       listingHref={listing.href}

@@ -46,3 +46,4 @@ export { ShareButtons } from "./share-buttons";
 export { RatingSummary, Stars } from "./stars";
 export { SketchIcon, type SketchName } from "./sketch-icon";
 export { RouteFilter } from "./route-filter";
+export { VerifiedBadge } from "./verified-badge";

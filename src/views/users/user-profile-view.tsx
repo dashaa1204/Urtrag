@@ -12,6 +12,7 @@ import {
   RatingSummary,
   ReviewList,
   SectionHeader,
+  VerifiedBadge,
 } from "@/components/ui";
 
 interface UserProfileViewProps {
@@ -29,7 +30,10 @@ export default function UserProfileView({ profile, rating, reviews, trips, shipm
         <div className="flex items-center gap-4">
           <Avatar name={profile.name} src={avatarUrl(profile.avatar_path)} size="lg" />
           <div className="min-w-0">
-            <h1 className="break-words text-xl font-bold text-ink">{profile.name}</h1>
+            <h1 className="flex items-center gap-1.5 break-words text-xl font-bold text-ink">
+              <span className="min-w-0">{profile.name}</span>
+              {profile.verified ? <VerifiedBadge className="h-5 w-5" /> : null}
+            </h1>
             <p className="mt-0.5 flex flex-wrap items-center gap-2 text-sm text-ink-soft">
               <RatingSummary rating={rating} />
               {profile.country ? (

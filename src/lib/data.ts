@@ -31,6 +31,19 @@ import type {
 } from "@/types";
 
 /**
+ * Хэрэглэгч бичиг баримтаар баталгаажсан эсэх — profiles-той join хийсэн
+ * асуулга бүрт ажиллана.
+ *
+ * Хүснэгтийн нэрийг гараар бичсэн нь санаатай: select доторх sql хэсэгт
+ * drizzle ${profiles.id}-г хүснэгтгүй "id" гэж гаргадаг тул дэд асуулга буруу
+ * багана руу заачихна.
+ */
+const profileVerified = sql<boolean>`exists (
+  select 1 from identity_verifications iv
+  where iv.user_id = "profiles"."id" and iv.status = 'approved'
+)`;
+
+/**
  * Views нь snake_case талбар хүлээдэг тул сонголтуудыг тэр хэлбэрээр нь буцаана.
  * Хянагчийн жагсаалт (lib/admin-data.ts) мөн эдгээрийг дахин ашиглана.
  */
@@ -49,6 +62,7 @@ export const tripFields = {
   created_at: trips.createdAt,
   user_name: profiles.name,
   user_avatar: profiles.avatarPath,
+  user_verified: profileVerified,
 };
 
 export const shipmentFields = {
@@ -67,6 +81,7 @@ export const shipmentFields = {
   created_at: shipments.createdAt,
   user_name: profiles.name,
   user_avatar: profiles.avatarPath,
+  user_verified: profileVerified,
 };
 
 // ---------- Аялал ----------
@@ -878,6 +893,7 @@ export const getUserProfile = cache(async (id: UserId): Promise<UserProfile | nu
       avatar_path: profiles.avatarPath,
       created_at: profiles.createdAt,
       deleted_at: profiles.deletedAt,
+      verified: profileVerified,
     })
     .from(profiles)
     .where(eq(profiles.id, id))

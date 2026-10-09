@@ -39,6 +39,8 @@ export interface ListingSummary {
   userName: string;
   /** Cloudinary public_id — харуулахын өмнө avatarUrl()-ээр дамжина. */
   userAvatar: string | null;
+  /** Эзэн бичиг баримтаар баталгаажсан эсэх. */
+  userVerified: boolean;
   status: ListingStatus;
   /** Аялалын огноо өнгөрсөн эсэх (ачаанд үргэлж false). */
   expired: boolean;
@@ -167,6 +169,7 @@ function shared(type: ListingType, listing: Trip | Shipment) {
     userId: listing.user_id,
     userName: listing.user_name,
     userAvatar: listing.user_avatar,
+    userVerified: listing.user_verified,
     status: listing.status,
     createdAt: listing.created_at,
     title: routeTitle(listing),

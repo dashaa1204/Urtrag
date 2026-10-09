@@ -3,6 +3,7 @@ import type { ListingSummary } from "@/lib/listing";
 import { avatarUrl } from "@/lib/avatar";
 import { Avatar } from "./avatar";
 import { Badge } from "./badge";
+import { VerifiedBadge } from "./verified-badge";
 
 /** Аялал ба ачааны зарын нэгдсэн карт. */
 export function ListingCard({ listing }: { listing: ListingSummary }) {
@@ -33,6 +34,7 @@ export function ListingCard({ listing }: { listing: ListingSummary }) {
       <div className="mt-3 flex items-center gap-2 text-xs text-ink-soft/70">
         <Avatar name={listing.userName} src={avatarUrl(listing.userAvatar)} size="xs" />
         <span className="min-w-0 truncate">{listing.userName}</span>
+        {listing.userVerified ? <VerifiedBadge className="-ml-1 h-3.5 w-3.5" /> : null}
       </div>
     </Link>
   );
