@@ -70,6 +70,8 @@ export default async function ConversationPage({ params }: PageProps<"/messages/
   const canReview = conversation.accepted_at !== null;
 
   const otherName = other?.name ?? "Хэрэглэгч";
+  // Бүртгэлээ устгасан хүнтэй яриа нь баримт болж үлддэг — уншигдана, бичигдэхгүй.
+  const otherDeleted = !other || other.deleted_at !== null;
   const match = matchListing?.found
     ? {
         label: conversation.starter_id === user.id ? "Таны зар" : `${otherName}-ийн зар`,
@@ -86,10 +88,11 @@ export default async function ConversationPage({ params }: PageProps<"/messages/
       otherId={otherId}
       otherName={otherName}
       otherAvatar={avatarUrl(other?.avatar_path)}
+      otherDeleted={otherDeleted}
       listingTitle={listing.title}
       listingHref={listing.href}
       match={match}
-      canAccept={travellerId(conversation) === user.id}
+      canAccept={!otherDeleted && travellerId(conversation) === user.id}
       canReview={canReview}
       ownReview={ownReview}
       hadUnread={hadUnread}

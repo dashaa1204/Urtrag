@@ -5,12 +5,13 @@
 // байлгаснаар эрхийн хил тодорхой болно: энэ файлын функцийг дуудаж буй бүх
 // зам requireAdmin() дамжсан байх ёстой.
 
-import { and, desc, eq, ilike, inArray, lt, or, sql, type Column, type SQL } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, isNull, lt, or, sql, type Column, type SQL } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db } from "./db";
 import {
   adminActions,
   conversations,
+  deletedAccounts,
   identityVerifications,
   messages,
   profiles,
@@ -103,7 +104,8 @@ export async function adminStats(): Promise<AdminStats> {
           week: int(sql`count(*) filter (where ${profiles.createdAt} >= ${week})`),
           month: int(sql`count(*) filter (where ${profiles.createdAt} >= ${month})`),
         })
-        .from(profiles),
+        .from(profiles)
+        .where(isNull(profiles.deletedAt)),
       db
         .select({
           total: int(sql`count(*)`),
@@ -184,6 +186,11 @@ export interface AdminUser {
   rating: number | null;
   /** Бичиг баримтын төлөв. Огт илгээгээгүй бол null. */
   verification: VerificationStatus | null;
+  /**
+   * Бүртгэлээ устгасан бол хадгалагдаж буй жинхэнэ мэдээлэл — маргаан, албан
+   * хүсэлтэд хариулахад. Идэвхтэй хэрэглэгчид null.
+   */
+  retained: { name: string; email: string | null; phone: string | null; retain_until: Date } | null;
 }
 
 /**
@@ -196,7 +203,10 @@ export async function listAdminUsers({
   page,
 }: PageQuery & { q?: string }): Promise<AdminPage<AdminUser>> {
   const { limit, offset } = range(page);
-  const search = q ? ilike(profiles.name, likePattern(q)) : undefined;
+  // Устгагдсан хэрэглэгчийн профайл дээрх нэр нь орлуулга тул жинхэнэ нэрээр нь ч хайна
+  const search = q
+    ? or(ilike(profiles.name, likePattern(q)), ilike(deletedAccounts.name, likePattern(q)))
+    : undefined;
 
   const rows = await db
     .select({
@@ -215,15 +225,27 @@ export async function listAdminUsers({
         number | null
       >`(select round(avg(${reviews.rating}), 1) from ${reviews} where ${reviews.revieweeId} = ${profiles.id})::float8`,
       verification: identityVerifications.status,
+      retainedName: deletedAccounts.name,
+      retainedEmail: deletedAccounts.email,
+      retainedPhone: deletedAccounts.phone,
+      retainUntil: deletedAccounts.retainUntil,
     })
     .from(profiles)
     .leftJoin(identityVerifications, eq(identityVerifications.userId, profiles.id))
+    .leftJoin(deletedAccounts, eq(deletedAccounts.userId, profiles.id))
     .where(search)
     .orderBy(desc(profiles.createdAt))
     .limit(limit)
     .offset(offset);
 
-  return paginate(rows, page);
+  const users = rows.map(({ retainedName, retainedEmail, retainedPhone, retainUntil, ...user }) => ({
+    ...user,
+    retained:
+      retainedName !== null && retainUntil !== null
+        ? { name: retainedName, email: retainedEmail, phone: retainedPhone, retain_until: retainUntil }
+        : null,
+  }));
+  return paginate(users, page);
 }
 
 // ---------- Зарууд ----------

@@ -106,6 +106,13 @@
       "when": 1786972801758,
       "tag": "0014_admin_actions",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1791516584245,
+      "tag": "0015_account_retention",
+      "breakpoints": true
     }
   ]
 }

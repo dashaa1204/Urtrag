@@ -169,6 +169,8 @@ export interface UserProfile {
   bio: string | null;
   avatar_path: string | null;
   created_at: Date;
+  /** Бүртгэлээ устгасан бол — профайл нь нийтэд харагдахгүй. */
+  deleted_at: Date | null;
 }
 
 /** Server action-уудын useActionState-д зориулсан нийтлэг төлөв */

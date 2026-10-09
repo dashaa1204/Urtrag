@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Card } from "@/components/ui";
+import { RETENTION_LABEL } from "@/constant/settings";
 import { DeleteAccountForm } from "./components";
 
 const STORED = [
@@ -35,10 +36,23 @@ export default function PrivacySettingsView() {
 
       <Card
         title="Бүртгэл устгах"
-        description="Устгасны дараа сэргээх боломжгүй. Таны зар, мессеж, үнэлгээ бүгд хамт устана."
+        description="Устгасны дараа сэргээх боломжгүй. Нэвтрэх эрх, профайлын зураг, бичиг баримтын файл тань шууд устна."
         headingAs="h2"
         className="border-red-300"
       >
+        <div className="mb-6 space-y-2 text-sm text-ink-soft">
+          <p>
+            <span className="font-semibold text-ink">Хэнтэй ч тохиролцоо хийж байгаагүй бол</span> зар, мессеж,
+            үнэлгээ зэрэг бүх өгөгдөл тань шууд устна.
+          </p>
+          <p>
+            <span className="font-semibold text-ink">Тохиролцоо хийж байсан бол</span> профайл тань нуугдаж,
+            &quot;Устгагдсан хэрэглэгч&quot; гэж харагдана. Харин нэр, имэйл, утас болон тохиролцооны мессеж
+            сүүлийн тохиролцооноос хойш {RETENTION_LABEL} хаалттай хадгалагдана. Ачаа алга болох зэрэг
+            маргаан гарвал эсвэл хууль хяналтын байгууллага албан ёсоор хүсвэл энэ мэдээллийг ашиглана. Хугацаа
+            дуусахад бүгд бүрэн устна.
+          </p>
+        </div>
         <DeleteAccountForm />
       </Card>
     </div>

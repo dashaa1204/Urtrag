@@ -31,10 +31,16 @@ export default function AdminUsersView({ page, q }: { page: AdminPage<AdminUser>
                 <div className="min-w-0 sm:flex-1">
                   <AdminUserCell
                     id={user.id}
-                    name={user.name}
+                    name={user.retained?.name ?? user.name}
                     avatarPath={user.avatar_path}
                     country={user.country}
-                    meta={`Элссэн: ${formatDate(user.created_at)}`}
+                    meta={
+                      user.retained
+                        ? [user.retained.email, user.retained.phone].filter(Boolean).join(" · ") ||
+                          "Холбоо барих мэдээлэлгүй"
+                        : `Элссэн: ${formatDate(user.created_at)}`
+                    }
+                    linked={!user.retained}
                   />
                 </div>
 
@@ -45,6 +51,9 @@ export default function AdminUsersView({ page, q }: { page: AdminPage<AdminUser>
                 <div className="flex flex-wrap items-center gap-2 sm:w-40 sm:shrink-0 sm:justify-end">
                   <RatingSummary rating={{ avg: user.rating ?? 0, count: user.reviews }} />
                   {verification ? <Badge tone={verification.tone}>{verification.label}</Badge> : null}
+                  {user.retained ? (
+                    <Badge tone="slate">Устгасан · {formatDate(user.retained.retain_until)} хүртэл</Badge>
+                  ) : null}
                 </div>
               </PanelRow>
             );

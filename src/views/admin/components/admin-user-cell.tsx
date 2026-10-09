@@ -15,6 +15,7 @@ export function AdminUserCell({
   country,
   meta,
   size = "sm",
+  linked = true,
 }: {
   id: UserId;
   name: string;
@@ -23,9 +24,11 @@ export function AdminUserCell({
   /** Нэрийн доорх жижиг мөр — элссэн огноо, үүрэг гэх мэт. */
   meta?: string;
   size?: "xs" | "sm";
+  /** Устгагдсан хэрэглэгчийн профайл 404 өгдөг тул холбоосгүй харуулна. */
+  linked?: boolean;
 }) {
-  return (
-    <Link href={`/users/${id}`} className="flex min-w-0 items-center gap-2 hover:underline">
+  const content = (
+    <>
       <Avatar name={name} src={avatarUrl(avatarPath)} size={size} />
       <span className="min-w-0">
         <span className="block truncate text-sm font-medium text-ink">
@@ -34,6 +37,13 @@ export function AdminUserCell({
         </span>
         {meta ? <span className="block truncate text-xs text-ink-soft">{meta}</span> : null}
       </span>
+    </>
+  );
+
+  if (!linked) return <div className="flex min-w-0 items-center gap-2">{content}</div>;
+  return (
+    <Link href={`/users/${id}`} className="flex min-w-0 items-center gap-2 hover:underline">
+      {content}
     </Link>
   );
 }

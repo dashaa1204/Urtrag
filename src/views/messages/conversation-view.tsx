@@ -15,6 +15,8 @@ interface ConversationViewProps {
   otherId: UserId;
   otherName: string;
   otherAvatar: string | null;
+  /** Нөгөө тал бүртгэлээ устгасан — яриа уншигдах ч хариу бичигдэхгүй. */
+  otherDeleted: boolean;
   listingTitle: string;
   listingHref: string;
   /** Яриа эхлүүлэгчийн хос зар — хэний зар болохыг label дээр бичнэ. */
@@ -33,6 +35,7 @@ export default function ConversationView({
   otherId,
   otherName,
   otherAvatar,
+  otherDeleted,
   listingTitle,
   listingHref,
   match,
@@ -81,9 +84,13 @@ export default function ConversationView({
         <div className="flex items-center gap-3 border-b-2 border-ink/10 px-4 py-3">
           <Avatar name={otherName} src={otherAvatar} online={otherOnline} />
           <div className="min-w-0 flex-1">
-            <Link href={`/users/${otherId}`} className="block truncate font-bold text-ink hover:underline">
-              {otherName}
-            </Link>
+            {otherDeleted ? (
+              <p className="truncate font-bold text-ink-soft">{otherName}</p>
+            ) : (
+              <Link href={`/users/${otherId}`} className="block truncate font-bold text-ink hover:underline">
+                {otherName}
+              </Link>
+            )}
             <p className="truncate text-xs text-ink-soft/80">
               {otherTyping ? "бичиж байна..." : otherOnline ? "Одоо идэвхтэй" : listingTitle}
             </p>
@@ -115,12 +122,18 @@ export default function ConversationView({
         />
 
         <div className="border-t-2 border-ink/10 p-3 sm:p-4">
-          <MessageForm
-            conversationId={conversation.id}
-            placeholder="Хариу бичих..."
-            onTyping={notifyTyping}
-            onSend={addPendingMessage}
-          />
+          {otherDeleted ? (
+            <p className="text-center text-sm text-ink-soft">
+              Энэ хэрэглэгч бүртгэлээ устгасан тул хариу бичих боломжгүй. Яриа нь баримт болж хадгалагдана.
+            </p>
+          ) : (
+            <MessageForm
+              conversationId={conversation.id}
+              placeholder="Хариу бичих..."
+              onTyping={notifyTyping}
+              onSend={addPendingMessage}
+            />
+          )}
         </div>
       </Panel>
 

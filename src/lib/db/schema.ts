@@ -42,8 +42,10 @@ export const adminActionEnum = pgEnum("admin_action", ADMIN_ACTION_KINDS);
 
 /**
  * Хэрэглэгчийн нийтэд харагдах мэдээлэл.
- * id нь auth.users(id)-тэй ижил бөгөөд FK-г нь migration дотор нэмнэ
- * (auth схем нь Supabase-ийн мэдэлд байдаг тул drizzle-д тодорхойлохгүй).
+ * id нь auth.users(id)-тэй ижил боловч FK ТАВИХГҮЙ (0015-д хассан): auth
+ * хэрэглэгч устахад профайл cascade-аар дагаж уствал тохиролцооны мессеж,
+ * үнэлгээ нь нөгөө талынх нь гарт ч алга болно. Устгалыг lib/account-retention.ts
+ * удирдана.
  */
 export const profiles = pgTable("profiles", {
   id: uuid("id").primaryKey(),
@@ -56,7 +58,38 @@ export const profiles = pgTable("profiles", {
   /** avatars bucket доторх зам. URL-ийг lib/avatar.ts угсарна. */
   avatarPath: text("avatar_path"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  /**
+   * Бүртгэлээ устгасан боловч тохиролцооны баримт нь хадгалагдаж буй хэрэглэгч.
+   * Энэ үед нэр нь "Устгагдсан хэрэглэгч" болж, жинхэнэ мэдээлэл нь
+   * deleted_accounts руу шилжинэ.
+   */
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
+
+/**
+ * Устгасан бүртгэлийн хаалттай хадгалах мэдээлэл — зөвхөн хянагчид харагдана.
+ *
+ * Тохиролцоо хийсэн хүн бүртгэлээ устгахад ачаа алга болсон гэх мэт маргаан,
+ * хууль хяналтын байгууллагын албан хүсэлтэд "энэ хэн байсан" гэдгийг хариулах
+ * ёстой. Тиймээс профайлыг нэргүй болгоод холбоо барих мэдээллийг энд
+ * retain_until хүртэл хадгална; дараа нь cron бүгдийг нь устгана.
+ */
+export const deletedAccounts = pgTable(
+  "deleted_accounts",
+  {
+    userId: uuid("user_id")
+      .primaryKey()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    /** Supabase dashboard-аас устгагдсан бол мэдэгдэхгүй — NULL. */
+    email: text("email"),
+    phone: text("phone"),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }).notNull().defaultNow(),
+    /** Сүүлийн тохиролцоо + хадгалах хугацаа. Үүнээс хойш бүрэн устна. */
+    retainUntil: timestamp("retain_until", { withTimezone: true }).notNull(),
+  },
+  (t) => [index("idx_deleted_accounts_retain").on(t.retainUntil)]
+);
 
 /**
  * Бичиг баримтаар хэн болохоо баталгаажуулах хүсэлт. Хэрэглэгч бүрд нэг мөр.

@@ -13,5 +13,14 @@ export const SETTINGS_NAV: { href: string; label: string; icon: SettingsIcon }[]
 /** "Миний тухай" хэсгийн дээд хязгаар — форм ба server action хоёулаа шалгана. */
 export const BIO_MAX = 500;
 
-/** Бүртгэл устгахын өмнө бичүүлэх үг. Санамсаргүй дарахаас хамгаална. */
-export const DELETE_CONFIRM_WORD = "УСТГАХ";
+/** Бүртгэлээ устгасан, баримт нь хадгалагдаж буй хэрэглэгчийн харагдах нэр. */
+export const DELETED_USER_NAME = "Устгагдсан хэрэглэгч";
+
+/**
+ * Тохиролцоо хийсэн хүн бүртгэлээ устгасны дараа түүний нэр, холбоо барих
+ * мэдээлэл болон тохиролцооны яриаг хадгалах хугацаа — сүүлийн тохиролцооноос
+ * тоолно. Postgres-ийн interval болон хэрэглэгчид харагдах бичвэр хоёулаа
+ * эндээс уншина.
+ */
+export const RETENTION_INTERVAL = "1 year";
+export const RETENTION_LABEL = "1 жил";
