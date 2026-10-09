@@ -32,7 +32,7 @@ export default async function UserProfilePage({ params }: PageProps<"/users/[id]
   if (viewer?.id === id) redirect("/my");
 
   const profile = await getUserProfile(id);
-  if (!profile) notFound();
+  if (!profile || profile.deleted_at) notFound();
 
   const [rating, reviews, trips, shipments] = await Promise.all([
     getUserRating(profile.id),

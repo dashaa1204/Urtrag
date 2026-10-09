@@ -109,7 +109,8 @@ export const getTrip = cache(async (id: number): Promise<Trip | null> => {
     .select(tripFields)
     .from(trips)
     .innerJoin(profiles, eq(profiles.id, trips.userId))
-    .where(eq(trips.id, id))
+    // Устгагдсан хэрэглэгчийн үлдсэн зар нь зөвхөн баримт — нийтэд харагдахгүй.
+    .where(and(eq(trips.id, id), isNull(profiles.deletedAt)))
     .limit(1);
   return row ?? null;
 });
@@ -237,7 +238,8 @@ export const getShipment = cache(async (id: number): Promise<Shipment | null> =>
     .select(shipmentFields)
     .from(shipments)
     .innerJoin(profiles, eq(profiles.id, shipments.userId))
-    .where(eq(shipments.id, id))
+    // Устгагдсан хэрэглэгчийн үлдсэн зар нь зөвхөн баримт — нийтэд харагдахгүй.
+    .where(and(eq(shipments.id, id), isNull(profiles.deletedAt)))
     .limit(1);
   return row ?? null;
 });
@@ -633,6 +635,16 @@ export async function getConversation(id: number): Promise<Conversation | null> 
   return row ?? null;
 }
 
+/** Бүртгэлээ устгасан хүнтэй харилцах (мессеж, тохиролцоо) боломжгүй. */
+export async function isUserDeleted(id: UserId): Promise<boolean> {
+  const [row] = await db
+    .select({ deletedAt: profiles.deletedAt })
+    .from(profiles)
+    .where(eq(profiles.id, id))
+    .limit(1);
+  return !row || row.deletedAt !== null;
+}
+
 export async function getUserName(id: UserId): Promise<string | null> {
   const [row] = await db.select({ name: profiles.name }).from(profiles).where(eq(profiles.id, id)).limit(1);
   return row?.name ?? null;
@@ -865,6 +877,7 @@ export const getUserProfile = cache(async (id: UserId): Promise<UserProfile | nu
       bio: profiles.bio,
       avatar_path: profiles.avatarPath,
       created_at: profiles.createdAt,
+      deleted_at: profiles.deletedAt,
     })
     .from(profiles)
     .where(eq(profiles.id, id))

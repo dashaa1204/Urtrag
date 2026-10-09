@@ -22,6 +22,7 @@ import {
   getShipment,
   getTrip,
   getUserName,
+  isUserDeleted,
   markReviewsRead,
   reopenListing as reopenListingRow,
   tripBookedKg,
@@ -32,7 +33,8 @@ import {
 import { logAdminAction } from "./admin-data";
 import { conversationPath, internalPath, listingPath, numericId } from "./nav";
 import { joinPhone } from "./phone";
-import { deleteImage, deleteImagesByPrefix, uploadImage } from "./cloudinary";
+import { deleteImage, uploadImage } from "./cloudinary";
+import { deleteUserFiles, retireProfile } from "./account-retention";
 import { createAdminClient } from "./supabase/admin";
 import {
   AVATAR_FOLDER,
@@ -45,7 +47,7 @@ import { counterpartType, dealPair, fitsCapacity, isTripExpired, travellerId } f
 import { formatKg } from "./format";
 import { findCity, isCountryCode } from "@/constant/cities";
 import { MATCH_COPY } from "@/constant/listings";
-import { BIO_MAX, DELETE_CONFIRM_WORD } from "@/constant/settings";
+import { BIO_MAX } from "@/constant/settings";
 import {
   DOC_FORMATS_LABEL,
   IDENTITY_BUCKET,
@@ -53,7 +55,7 @@ import {
   MAX_DOC_LABEL,
 } from "@/constant/verification";
 import { SITE } from "@/constant/site";
-import type { FormState, ListingType } from "@/types";
+import type { Conversation, FormState, ListingType, UserId } from "@/types";
 
 const EMAIL_RE = /^\S+@\S+\.\S+$/;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -532,6 +534,12 @@ export async function deleteListing(formData: FormData): Promise<void> {
 // ---------- Мессеж ----------
 
 /** Аялалын сул жин хүрэлцэхгүй үеийн тайлбар — хоёр талд ижил. */
+const DELETED_PARTY_ERROR = "Энэ хэрэглэгч бүртгэлээ устгасан тул харилцах боломжгүй.";
+
+function otherParty(conversation: Conversation, userId: UserId): UserId {
+  return conversation.starter_id === userId ? conversation.owner_id : conversation.starter_id;
+}
+
 function noRoomError(remainingKg: number, weightKg: number): string {
   return `Аялалд ${formatKg(Math.max(0, remainingKg))} сул үлдсэн тул ${formatKg(
     weightKg
@@ -553,6 +561,9 @@ export async function sendMessage(_prev: FormState | undefined, formData: FormDa
     const conversation = conversationId !== null ? await getConversation(conversationId) : null;
     if (!conversation || (conversation.starter_id !== user.id && conversation.owner_id !== user.id)) {
       return { error: "Харилцан яриа олдсонгүй." };
+    }
+    if (await isUserDeleted(otherParty(conversation, user.id))) {
+      return { error: DELETED_PARTY_ERROR, values: { body } };
     }
     await addMessage(conversation.id, user.id, body);
     revalidatePath(conversationPath(conversation.id));
@@ -652,6 +663,7 @@ export async function decideDeal(_prev: FormState | undefined, formData: FormDat
   }
 
   if (decision === "accepted") {
+    if (await isUserDeleted(otherParty(conversation, user.id))) return { error: DELETED_PARTY_ERROR };
     // Сул жин нь аялагчийнх тул шийдвэр ч түүнийх. Зарын эзэн гэж үзвэл ачааны
     // зар дээр эхэлсэн ярианд илгээгч тал аялагчийн жинг өөрөө хасчихна.
     if (travellerId(conversation) !== user.id) {
@@ -712,7 +724,7 @@ export async function submitReview(_prev: FormState | undefined, formData: FormD
     return { error: "Тохиролцоо хийсний дараа үнэлгээ өгөх боломжтой." };
   }
 
-  const revieweeId = conversation.starter_id === user.id ? conversation.owner_id : conversation.starter_id;
+  const revieweeId = otherParty(conversation, user.id);
 
   await upsertReview({
     conversationId: conversation.id,
@@ -988,36 +1000,39 @@ export async function changePassword(
   return { notice: "Нууц үг солигдлоо." };
 }
 
-/** Хэрэглэгч өөрийн бүртгэлээ бүр мөсөн устгах (GDPR). */
+/**
+ * Хэрэглэгч өөрийн бүртгэлээ устгах (GDPR). Тохиролцоо хийж байгаагүй бол бүх
+ * өгөгдөл шууд устна; хийж байсан бол профайл нэргүй болж, баримт нь хадгалах
+ * хугацаандаа үлдэнэ (lib/account-retention.ts).
+ */
 export async function deleteAccount(
   _prev: FormState | undefined,
   formData: FormData
 ): Promise<FormState> {
   const user = await requireUser("/settings/privacy");
 
-  if (str(formData, "confirm") !== DELETE_CONFIRM_WORD) {
-    return { error: `Баталгаажуулахын тулд "${DELETE_CONFIRM_WORD}" гэж бичнэ үү.` };
+  if (str(formData, "confirm") !== "on") {
+    return { error: "Устгахаас өмнө баталгаажуулах нүдийг чагтална уу." };
   }
 
-  const admin = createAdminClient();
+  await deleteUserFiles(user.id);
 
-  // Хүснэгтүүд cascade-аар цэвэрлэгддэг ч файлууд үлддэг тул эхлээд
-  // хэрэглэгчийн хавтсуудыг хоёр талд нь устгана.
-  const storage = admin.storage.from(IDENTITY_BUCKET);
-  const { data: files } = await storage.list(user.id);
-  if (files && files.length > 0) {
-    await storage.remove(files.map((file) => `${user.id}/${file.name}`));
-  }
-  await deleteImagesByPrefix(`${AVATAR_FOLDER}/${user.id}/`);
-
-  // auth.users устахад profiles болон түүнд холбоотой бүх зар, мессеж, үнэлгээ
-  // cascade-аар дагаж устана (drizzle/0001_supabase_auth.sql).
-  const { error } = await admin.auth.admin.deleteUser(user.id);
+  // Auth-ыг ЭХЛЭЭД устгана: нэвтрэх эрх нь хаагдсаны дараа профайл цэвэрлэгээ
+  // унавал өнчин профайлыг cron дахин барьж авна. Эсрэг дараалалд цэвэрлэгээ
+  // амжаад auth устгал унавал хэрэглэгч нэргүй болсон профайлаараа нэвтэрсээр.
+  const { error } = await createAdminClient().auth.admin.deleteUser(user.id);
   if (error) {
     return { error: "Бүртгэл устгаж чадсангүй. Дараа дахин оролдоно уу." };
   }
 
+  try {
+    await retireProfile(user.id, user.email || null);
+  } catch (retireError) {
+    console.error("[delete-account] профайл цэвэрлэж чадсангүй, cron дахин оролдоно:", retireError);
+  }
+
   const supabase = await createClient();
   await supabase.auth.signOut();
+  revalidatePath("/", "layout");
   redirect("/");
 }

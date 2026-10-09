@@ -22,7 +22,7 @@ export function Hero() {
               Аялал зарлах
             </Link>
             <Link href="/shipments/new" className={`${btnSecondary} ${btnLg}`}>
-              Ачаа илгээх хүсэлт
+              Ачаа илгээх
             </Link>
           </div>
         </div>
