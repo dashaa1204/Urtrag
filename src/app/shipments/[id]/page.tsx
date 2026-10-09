@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: PageProps<"/shipments/[id]">)
   const route = routeTitle(shipment);
   const title = `${route} · ${formatKg(shipment.weight_kg)} ачаа`;
   const deadline = shipment.deadline_date ? ` ${formatDate(shipment.deadline_date)} дотор хүргүүлнэ.` : "";
-  const description = `${route} чиглэлд ${formatKg(shipment.weight_kg)} ачаа илгээх хүсэлт.${deadline} Энэ чиглэлд аялж байвал мессежээр холбогдоорой.`;
+  const description = `${route} чиглэлд ${formatKg(shipment.weight_kg)} ачаа илгээнэ.${deadline} Энэ чиглэлд аялж байвал мессежээр холбогдоорой.`;
 
   return {
     title,

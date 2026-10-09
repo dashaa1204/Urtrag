@@ -94,7 +94,7 @@ export const LISTING_COPY: Record<ListingType, ListingCopy> = {
   shipment: {
     listTitle: "Ачаанууд",
     listDescription: "Илгээхээр хүлээгдэж буй ачааны хүсэлтүүд",
-    createLabel: "+ Ачаа илгээх хүсэлт",
+    createLabel: "+ Ачаа илгээх",
     createHref: "/shipments/new",
     basePath: "/shipments",
     emptyTitle: "Одоогоор идэвхтэй ачааны хүсэлт алга байна.",
@@ -105,7 +105,7 @@ export const LISTING_COPY: Record<ListingType, ListingCopy> = {
     myEmpty: "Та одоогоор ачааны хүсэлт оруулаагүй байна.",
     myEmptyAction: "Эхний хүсэлтээ нийтлэх",
     profileTitle: "Идэвхтэй ачаанууд",
-    newTitle: "Ачаа илгээх хүсэлт",
+    newTitle: "Ачаа илгээх",
     newDescription:
       "Ачааныхаа мэдээллийг оруулбал тухайн чиглэлд аялах хүмүүс тантай мессежээр холбогдоно.",
     editTitle: "Ачааны хүсэлт засах",

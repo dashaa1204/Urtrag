@@ -4,7 +4,7 @@ import { internalPath } from "@/lib/nav";
 import { ListingFormView } from "@/views/listings";
 import { ShipmentForm } from "@/views/shipments/components";
 
-export const metadata: Metadata = { title: "Ачаа илгээх хүсэлт", robots: { index: false, follow: false }, };
+export const metadata: Metadata = { title: "Ачаа илгээх", robots: { index: false, follow: false }, };
 
 export default async function ShipmentNewPage({ searchParams }: PageProps<"/shipments/new">) {
   const { next, from, to } = await searchParams;
