@@ -36,6 +36,8 @@ export interface Trip {
   user_name: string;
   /** Эзний Cloudinary public_id — lib/avatar.ts URL болгоно. */
   user_avatar: string | null;
+  /** Эзэн бичиг баримтаар баталгаажсан эсэх. */
+  user_verified: boolean;
 }
 
 export interface Shipment {
@@ -56,6 +58,8 @@ export interface Shipment {
   user_name: string;
   /** Эзний Cloudinary public_id — lib/avatar.ts URL болгоно. */
   user_avatar: string | null;
+  /** Эзэн бичиг баримтаар баталгаажсан эсэх. */
+  user_verified: boolean;
 }
 
 /**
@@ -171,6 +175,8 @@ export interface UserProfile {
   created_at: Date;
   /** Бүртгэлээ устгасан бол — профайл нь нийтэд харагдахгүй. */
   deleted_at: Date | null;
+  /** Бичиг баримтаар баталгаажсан эсэх — нэрний хажууд тэмдэг гарна. */
+  verified: boolean;
 }
 
 /** Server action-уудын useActionState-д зориулсан нийтлэг төлөв */

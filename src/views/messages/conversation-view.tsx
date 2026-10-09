@@ -5,7 +5,7 @@ import { useEffect, useOptimistic } from "react";
 import { useRouter } from "next/navigation";
 import type { Conversation, Message, Review, UserId } from "@/types";
 import { useOnlineUsers } from "@/components/layout/presence-provider";
-import { Avatar, Card, MessageForm, PageContainer, Panel } from "@/components/ui";
+import { Avatar, Card, MessageForm, PageContainer, Panel, VerifiedBadge } from "@/components/ui";
 import { DealBox, MessageList, ReviewBox, useConversationChannel } from "./components";
 
 interface ConversationViewProps {
@@ -15,6 +15,8 @@ interface ConversationViewProps {
   otherId: UserId;
   otherName: string;
   otherAvatar: string | null;
+  /** Нөгөө тал бичиг баримтаар баталгаажсан эсэх. */
+  otherVerified: boolean;
   /** Нөгөө тал бүртгэлээ устгасан — яриа уншигдах ч хариу бичигдэхгүй. */
   otherDeleted: boolean;
   listingTitle: string;
@@ -35,6 +37,7 @@ export default function ConversationView({
   otherId,
   otherName,
   otherAvatar,
+  otherVerified,
   otherDeleted,
   listingTitle,
   listingHref,
@@ -87,8 +90,12 @@ export default function ConversationView({
             {otherDeleted ? (
               <p className="truncate font-bold text-ink-soft">{otherName}</p>
             ) : (
-              <Link href={`/users/${otherId}`} className="block truncate font-bold text-ink hover:underline">
-                {otherName}
+              <Link
+                href={`/users/${otherId}`}
+                className="flex min-w-0 items-center gap-1 font-bold text-ink hover:underline"
+              >
+                <span className="truncate">{otherName}</span>
+                {otherVerified ? <VerifiedBadge /> : null}
               </Link>
             )}
             <p className="truncate text-xs text-ink-soft/80">
