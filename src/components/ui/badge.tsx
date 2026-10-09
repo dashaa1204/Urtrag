@@ -42,8 +42,10 @@ export function StatusBadge({
   return matched ? <Badge tone="amber">{matchedLabel}</Badge> : <Badge tone="green">Идэвхтэй</Badge>;
 }
 
+// red-600, биш red-500: тоо нь 11px bold цагаан бичигтэй тул red-500 дээр
+// 3.76:1 болж AA-г давдаггүй байсан. red-600 нь 4.83:1.
 const countToneCls = {
-  red: "bg-red-500",
+  red: "bg-red-600",
   indigo: "bg-ink",
 };
 

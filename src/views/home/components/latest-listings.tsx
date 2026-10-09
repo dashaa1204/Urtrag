@@ -13,8 +13,15 @@ export function LatestListings({ type, listings }: { type: ListingType; listings
       <SectionHeader
         size="lg"
         title={copy.homeTitle}
+        // py-3 / -my-3 нь товшилтын талбайг 20px-ээс 44px болгож томсгоод,
+        // сөрөг margin нь байрлалыг нь хэвээр үлдээнэ. Энэ бол нүүр хуудаснаас
+        // жагсаалт руу гарах гол зам — утсан дээр оносон эсэхээ мэдэхгүй
+        // товшилт байж болохгүй.
         action={
-          <Link href={copy.basePath} className="text-sm font-semibold text-stamp hover:underline">
+          <Link
+            href={copy.basePath}
+            className="-my-3 inline-flex min-h-11 items-center py-3 text-sm font-semibold text-stamp hover:underline"
+          >
             Бүгдийг үзэх →
           </Link>
         }

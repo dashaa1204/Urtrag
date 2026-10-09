@@ -75,7 +75,7 @@ export function MessageList({
         return (
           <div key={message.id}>
             {newDay ? (
-              <p className="my-4 text-center text-xs font-medium text-ink-soft/70">
+              <p className="my-4 text-center text-xs font-medium text-ink-soft">
                 <DayLabel iso={message.created_at} />
               </p>
             ) : null}

@@ -25,7 +25,7 @@ export default function IdentitySettingsView({ verification }: { verification: V
         {approved ? null : (
           <>
             <div className="mb-6 rounded-xl bg-ink/5 p-4">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-soft/70">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-soft">
                 Хэрхэн явагдах вэ
               </p>
               <ol className="space-y-2 text-sm text-ink-soft">

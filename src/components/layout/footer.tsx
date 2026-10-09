@@ -11,13 +11,16 @@ export function Footer() {
           <span>— {SITE.tagline}</span>
         </p>
         <div className="flex items-center gap-4">
-          <Link href="/disclaimer" className="hover:text-ink hover:underline">
+          <Link
+            href="/disclaimer"
+            className="-my-3 inline-flex min-h-11 items-center py-3 hover:text-ink hover:underline"
+          >
             Хариуцлагын тайлбар
           </Link>
           <p>© {new Date().getFullYear()}</p>
         </div>
       </div>
-      <div className="mx-auto w-full max-w-5xl px-4 pb-6 text-xs text-ink-soft/70">
+      <div className="mx-auto w-full max-w-5xl px-4 pb-6 text-xs text-ink-soft">
         Urtrag зөвхөн хэрэглэгчдийг холбоно. Ачаа, төлбөр, гаалийн хариуцлагыг талууд өөрсдөө хүлээнэ.
       </div>
     </footer>

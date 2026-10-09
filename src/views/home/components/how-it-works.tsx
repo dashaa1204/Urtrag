@@ -94,7 +94,7 @@ function PhoneMockup() {
               <div key={trip.route} className="rounded-lg border-2 border-ink/12 bg-card p-2.5 sm:p-3">
                 <div className="flex items-start justify-between gap-1.5">
                   <p className="text-[11px] font-semibold leading-snug text-ink sm:text-[13px]">{trip.route}</p>
-                  <span className="shrink-0 text-[8px] font-medium uppercase text-ink-soft/70 sm:text-[9px]">
+                  <span className="shrink-0 text-[8px] font-medium uppercase text-ink-soft sm:text-[9px]">
                     {trip.tag}
                   </span>
                 </div>
@@ -117,7 +117,7 @@ function PhoneMockup() {
         <p className="mt-1.5 text-sm text-ink-soft">
           <span className="font-semibold text-ink">Болдоо</span> 5кг ачаа авч явахаар боллоо.
         </p>
-        <p className="mt-1 text-xs text-ink-soft/70">Вена, 08.19 · 55€</p>
+        <p className="mt-1 text-xs text-ink-soft">Вена, 08.19 · 55€</p>
       </div>
     </div>
   );

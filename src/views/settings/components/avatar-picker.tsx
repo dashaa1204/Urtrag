@@ -89,7 +89,7 @@ export function AvatarPicker({
         />
       </label>
 
-      <p className="text-xs text-ink-soft/70">
+      <p className="text-xs text-ink-soft">
         {AVATAR_FORMATS_LABEL} — томыг нь автоматаар багасгана. Хоосон бол нэрийн эхний үсэг гарна.
       </p>
 

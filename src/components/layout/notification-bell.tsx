@@ -55,7 +55,7 @@ export function NotificationBell({ reviews, unread }: { reviews: Review[]; unrea
                   <span className="font-medium text-ink">{review.reviewer_name}</span> танд үнэлгээ өглөө{" "}
                   <Stars rating={review.rating} />
                 </span>
-                <span className="mt-0.5 block text-xs text-ink-soft/70">
+                <span className="mt-0.5 block text-xs text-ink-soft">
                   <LocalTime iso={review.created_at} dateOnly />
                 </span>
               </span>

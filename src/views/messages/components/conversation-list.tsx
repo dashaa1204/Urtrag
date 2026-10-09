@@ -116,12 +116,12 @@ export function ConversationList({
                     }`}
                   >
                     {conversation.other_name}
-                    <span className="ml-2 text-xs font-normal text-ink-soft/70">
+                    <span className="ml-2 text-xs font-normal text-ink-soft">
                       {conversation.listing_title}
                     </span>
                   </p>
                   {conversation.last_at ? (
-                    <span className="shrink-0 text-xs text-ink-soft/70">
+                    <span className="shrink-0 text-xs text-ink-soft">
                       <RelativeTime iso={conversation.last_at} />
                     </span>
                   ) : null}

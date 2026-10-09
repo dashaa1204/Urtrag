@@ -22,10 +22,10 @@ export function Field({
   return (
     <div>
       <label htmlFor={htmlFor} className={labelCls}>
-        {label} {optional ? <span className="font-normal text-ink-soft/70">(заавал биш)</span> : null}
+        {label} {optional ? <span className="font-normal text-ink-soft">(заавал биш)</span> : null}
       </label>
       {children}
-      {hint ? <p className="mt-1 text-xs text-ink-soft/70">{hint}</p> : null}
+      {hint ? <p className="mt-1 text-xs text-ink-soft">{hint}</p> : null}
       <FieldError message={error} />
     </div>
   );

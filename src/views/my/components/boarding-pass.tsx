@@ -9,12 +9,6 @@ import { PassStamp } from "./pass-stamp";
 /** Шилдэг үнэлгээний босго — цөөн үнэлгээгээр 5.0 харагдахаас сэргийлнэ. */
 const TOP_RATED = { minCount: 3, minAvg: 4.5 };
 
-export interface PassCounts {
-  trips: number;
-  shipments: number;
-  reviews: number;
-}
-
 /** "URT 2026 MN 3848" — тасалбарын дугаар мэт харагдах тогтмол код. */
 function passCode(id: string, createdAt: Date): string {
   const digits = Number(id.replace(/\D/g, "").slice(0, 6) || 0) % 10000;
@@ -24,12 +18,10 @@ function passCode(id: string, createdAt: Date): string {
 export function BoardingPass({
   user,
   rating,
-  counts,
   identityVerified,
 }: {
   user: SessionUser;
   rating: UserRating;
-  counts: PassCounts;
   /** Бичиг баримтаар баталгаажсан эсэх (/settings/identity). */
   identityVerified: boolean;
 }) {
@@ -46,12 +38,17 @@ export function BoardingPass({
     },
   ];
 
-  const stats = [
-    { label: "Аялал", value: String(counts.trips) },
-    { label: "Ачаа", value: String(counts.shipments) },
-    { label: "Үнэлгээ", value: String(counts.reviews) },
-    { label: "Оноо", value: rating.count > 0 ? `★ ${rating.avg.toFixed(1)}` : "—" },
-  ];
+  // Энд өмнө нь Аялал / Ачаа / Үнэлгээ гэсэн гурван тоо байсан — гэтэл яг 24px
+  // доорх табууд тэр гурвыг нэгэнт харуулдаг. Нэг дэлгэцэн дээр ижил гурван
+  // тоог хоёр удаа хэлэх нь давхардал төдийгүй хуудасны хамгийн үнэтэй хэсгийг
+  // зарцуулж байсан: тасалбар нь утсан дээр 439px буюу дэлгэцийн 54%-ийг эзэлж,
+  // хэрэглэгчийн ирсэн зорилго болох зарын жагсаалт нь 685px дээр дөнгөж хальт
+  // харагддаг байв.
+  //
+  // Үлдсэн хоёр нь давхардаагүй: онооны ДУНДАЖ (таб нь үнэлгээний ТООГ хэлдэг)
+  // ба тасалбарын дугаар (өмнө нь зөвхөн sm-ээс дээш харагддаг байсан тул
+  // утсан дээр огт байхгүй байлаа).
+  const scoreValue = rating.count > 0 ? `★ ${rating.avg.toFixed(1)}` : "—";
 
   return (
     // overflow-hidden биш — тамга нь тасалбарын ирмэгээс халин гарч байж
@@ -62,11 +59,9 @@ export function BoardingPass({
           <LogoMark className="h-6 w-6" />
           Boarding pass
         </p>
+        {/* Дугаар нь доорх ишэнд бүх өргөнд гарах болсон тул энд давтахгүй. */}
         <div className="hidden shrink-0 text-right sm:block">
           <PassBarcode seed={user.id} />
-          <p className="mt-1 text-[10px] tracking-[0.2em] text-ink-soft/70">
-            {passCode(user.id, user.createdAt)}
-          </p>
         </div>
       </div>
 
@@ -97,21 +92,18 @@ export function BoardingPass({
         </div>
       </div>
 
-      {/* Тасалбарын хэрчих зурвас — доор нь тоон хураангуй */}
-      <div className="grid grid-cols-2 border-t-2 border-dashed border-ink/15 sm:grid-cols-4">
-        {stats.map((stat, i) => (
-          <div
-            key={stat.label}
-            className={`px-4 py-3 text-center ${i % 2 === 1 ? "border-l border-ink/10" : ""} ${
-              i >= 2 ? "border-t border-ink/10" : ""
-            } sm:border-t-0 ${i > 0 ? "sm:border-l sm:border-ink/10" : "sm:border-l-0"}`}
-          >
-            <p className="text-lg font-bold text-ink">{stat.value}</p>
-            <p className="text-[10px] font-medium uppercase tracking-[0.15em] text-ink-soft/70">
-              {stat.label}
-            </p>
-          </div>
-        ))}
+      {/* Тасалбарын хэрчих зурвас — нэг мөрийн иш. Зүүнд оноо, баруунд дугаар:
+          жинхэнэ тасалбарын иш яг ийм хоёр зүйлийг үүрдэг. */}
+      <div className="flex items-center justify-between gap-4 border-t-2 border-dashed border-ink/15 px-4 py-3 sm:px-6">
+        <div>
+          <p className="text-lg font-bold text-ink">{scoreValue}</p>
+          <p className="text-[10px] font-medium uppercase tracking-[0.15em] text-ink-soft">
+            Оноо
+          </p>
+        </div>
+        <p className="shrink-0 text-right text-[10px] tracking-[0.2em] text-ink-soft">
+          {passCode(user.id, user.createdAt)}
+        </p>
       </div>
     </section>
   );
@@ -121,7 +113,7 @@ export function BoardingPass({
 function PassField({ label, value, small = false }: { label: string; value: string; small?: boolean }) {
   return (
     <>
-      <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-ink-soft/70">{label}</p>
+      <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-ink-soft">{label}</p>
       <p className={`truncate font-bold text-ink ${small ? "text-sm" : "text-xl uppercase"}`}>{value}</p>
     </>
   );

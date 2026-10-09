@@ -134,7 +134,7 @@ export function MessageForm({
         </button>
       </div>
 
-      <p className="hidden text-right text-xs text-ink-soft/70 pointer-fine:block">
+      <p className="hidden text-right text-xs text-ink-soft pointer-fine:block">
         Enter — илгээх, Shift+Enter — мөр таслах
       </p>
     </form>

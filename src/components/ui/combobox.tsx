@@ -131,7 +131,7 @@ export function ComboboxField({
                 }`}
               >
                 <span>{option.value}</span>
-                {option.hint ? <span className="shrink-0 text-xs text-ink-soft/70">{option.hint}</span> : null}
+                {option.hint ? <span className="shrink-0 text-xs text-ink-soft">{option.hint}</span> : null}
               </li>
             ))}
           </ul>

@@ -103,7 +103,7 @@ export default function AdminOverviewView({
                   country={user.country}
                   meta={`${user.trips} аялал · ${user.shipments} ачаа`}
                 />
-                <span className="shrink-0 text-xs text-ink-soft/70">{formatDate(user.created_at)}</span>
+                <span className="shrink-0 text-xs text-ink-soft">{formatDate(user.created_at)}</span>
               </PanelRow>
             ))}
           </Panel>

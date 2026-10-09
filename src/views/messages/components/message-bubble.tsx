@@ -56,7 +56,7 @@ export function MessageBubble({
       </div>
 
       {isLastOfGroup ? (
-        <p className={`mt-1 px-1 text-[10px] text-ink-soft/70 ${isMine ? "" : "ml-10"}`}>
+        <p className={`mt-1 px-1 text-[10px] text-ink-soft ${isMine ? "" : "ml-10"}`}>
           <ClockTime iso={message.created_at} />
           {footer ? ` · ${footer}` : ""}
         </p>

@@ -1,4 +1,4 @@
-export { BoardingPass, type PassCounts } from "./boarding-pass";
+export { BoardingPass } from "./boarding-pass";
 export { ListingActions } from "./listing-actions";
 export { ListingPanel } from "./listing-panel";
 export { MyListingRow } from "./my-listing-row";
